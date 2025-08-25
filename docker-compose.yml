@@ -1,0 +1,39 @@
+# --------------------------------------------------------------------------------------------------
+# --- File: docker-compose.yml ---
+# --------------------------------------------------------------------------------------------------
+version: '3.8'
+
+services:
+  # Service for our Node.js application
+  app:
+    # Build the Docker image using the Dockerfile in the current directory
+    build: .
+    # Map port 3000 inside the container to port 3000 on the host
+    ports:
+      - "3000:3000"
+    # Use environment variables from the .env file
+    env_file:
+      - .env
+    # Create a persistent volume for the database file
+    volumes:
+      - ./database.sqlite:/app/database.sqlite
+
+  # Service for the ngrok tunnel
+  ngrok:
+    # Use the official ngrok Docker image
+    image: ngrok/ngrok:latest
+    # Map ngrok's dashboard port (4040) to the host
+    ports:
+      - "4040:4040"
+    # Wait for the 'app' service to be healthy before starting this service
+    depends_on:
+      - app
+    # Set environment variables for ngrok
+    environment:
+      # Use the NGROK_AUTHTOKEN from the .env file
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    # Command to run ngrok with your specific domain
+    command:
+      - "http"
+      - "app:3000"
+      - "--domain=handy-charmed-elk.ngrok-free.app"
