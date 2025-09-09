@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SVOE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f7f6; margin: 0; }
+        header { background-color: #005A9C; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; }
+        #logout-btn { background-color: #D32F2F; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+        #welcome-message { font-size: 0.9rem; }
+        main { padding: 1rem; }
+        #admin-tools { display: none; background-color: #e0e0e0; padding: 1rem; margin-bottom: 1rem; }
+        #admin-tools button { margin-right: 1rem; }
+        .content-section { display: none; } /* Hide all sections by default */
+        .content-section.active { display: block; } /* Show only the active one */
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SVOE Dashboard</h1>
+        <div>
+            <span id="welcome-message"></span>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="admin-tools">
+            <h2>Admin Panel</h2>
+            <button id="show-videos-btn">Video Management</button>
+            <button id="show-users-btn">User Management</button>
+            <button id="show-tags-btn">Tag Management</button>
+        </div>
+
+        <div id="content-container">
+            <div id="videos-section" class="content-section active">
+                <h3>Video Management</h3>
+
+                <div id="video-upload-form-container" style="margin-bottom: 2rem; padding: 1rem; border: 1px solid #ccc;">
+                    <h4>Upload New Video</h4>
+                    <form id="video-upload-form" enctype="multipart/form-data">
+                        <div>
+                            <label for="upload-title">Title:</label>
+                            <input type="text" id="upload-title" name="title" required>
+                        </div>
+                        <div style="margin-top: 0.5rem;">
+                            <label for="upload-description">Description:</label>
+                            <textarea id="upload-description" name="description"></textarea>
+                        </div>
+                        <div style="margin-top: 0.5rem;">
+                            <label for="upload-file">Video File:</label>
+                            <input type="file" id="upload-file" name="videoFile" accept="video/*" required>
+                        </div>
+                        <button type="submit" style="margin-top: 1rem;">Upload</button>
+                    </form>
+                </div>
+
+                <h4>Existing Videos</h4>
+                <div id="video-gallery"></div>
+            </div>
+            <div id="users-section" class="content-section">
+                <h3>Manage Users</h3>
+                <div id="user-list"></div>
+            </div>
+            <div id="tags-section" class="content-section">
+                <h3>Manage Tags</h3>
+                <div id="tag-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+</body>
+</html>
