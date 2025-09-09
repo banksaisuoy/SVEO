@@ -4,7 +4,12 @@ require('dotenv').config({ path: '.env' });
 const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
-require('./db/database'); // This initializes the database connection and schema
+const { initializeDb } = require('./db/database');
+
+// Initialize the database for non-test environments
+if (process.env.NODE_ENV !== 'test') {
+    initializeDb();
+}
 
 // Import routes
 const authRoutes = require('./routes/auth');
