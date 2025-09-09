@@ -1,0 +1,71 @@
+[2025-09-09T05:03:28.617Z] SERVER STARTUP PID:39720
+[2025-09-09T05:08:52.039Z] SIGINT received
+[2025-09-09T05:08:52.044Z] exit code=0
+[2025-09-09T05:09:53.413Z] SERVER STARTUP PID:43116
+[2025-09-09T05:10:06.837Z] SIGINT received
+[2025-09-09T05:10:06.843Z] exit code=0
+[2025-09-09T05:11:06.783Z] SERVER STARTUP PID:7716
+[2025-09-09T05:11:25.355Z] SIGINT received
+[2025-09-09T05:11:25.361Z] exit code=0
+[2025-09-09T05:19:07.828Z] SERVER STARTUP PID:48612
+[2025-09-09T05:40:54.713Z] SIGINT received
+[2025-09-09T05:40:54.723Z] exit code=0
+[2025-09-09T05:40:57.664Z] SERVER STARTUP PID:54264
+[2025-09-09T07:19:39.667Z] SERVER STARTUP PID:41352
+[2025-09-09T07:29:43.800Z] SERVER STARTUP PID:65020
+[2025-09-09T07:30:22.193Z] SIGINT received
+[2025-09-09T07:30:22.200Z] exit code=0
+[2025-09-09T07:44:47.452Z] SERVER STARTUP PID:40024
+[2025-09-09T07:46:13.995Z] SIGINT received
+[2025-09-09T07:46:13.999Z] exit code=0
+[2025-09-09T07:50:55.580Z] SERVER STARTUP PID:79164
+[2025-09-09T07:52:19.931Z] SIGINT received
+[2025-09-09T07:52:19.935Z] exit code=0
+[2025-09-09T07:55:35.746Z] SERVER STARTUP PID:77520
+[2025-09-09T07:56:32.071Z] SIGINT received
+[2025-09-09T07:56:32.076Z] exit code=0
+[2025-09-09T07:59:36.821Z] SERVER STARTUP PID:55324
+[2025-09-09T08:00:06.279Z] SIGINT received
+[2025-09-09T08:00:06.284Z] exit code=0
+[2025-09-09T08:04:40.625Z] SERVER STARTUP PID:63612
+[2025-09-09T08:05:16.981Z] SIGINT received
+[2025-09-09T08:05:16.985Z] exit code=0
+[2025-09-09T08:07:43.088Z] SERVER STARTUP PID:19756
+[2025-09-09T08:08:14.996Z] SIGINT received
+[2025-09-09T08:08:15.001Z] exit code=0
+[2025-09-09T08:08:21.612Z] SERVER STARTUP PID:80628
+[2025-09-09T08:26:35.853Z] SERVER STARTUP PID:55396
+[2025-09-09T08:30:04.240Z] CLIENT_ERROR from ::1: {"diag":{"ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0","url":"http://localhost:3000/","time":"2025-09-09T08:30:04.235Z","elements":{"app-container":true,"main-header":true,"main-content":true,"video-gallery":true,"login-modal":true,"video-modal":true,"add-video-btn":true,"upload-progress":true},"scriptsCount":3,"scriptsList":["https://cdn.tailwindcss.com/","http://localhost:3000/main.js","\n        (function(){\n            const "]}}
+[2025-09-09T08:30:12.027Z] CLIENT_ERROR from ::1: {"diag":{"ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0","url":"http://localhost:3000/","time":"2025-09-09T08:30:12.024Z","elements":{"app-container":true,"main-header":true,"main-content":true,"video-gallery":true,"login-modal":true,"video-modal":true,"add-video-btn":true,"upload-progress":true},"scriptsCount":3,"scriptsList":["https://cdn.tailwindcss.com/","http://localhost:3000/main.js","\n        (function(){\n            const "]}}
+[2025-09-09T08:32:22.575Z] SIGINT received
+[2025-09-09T08:32:22.580Z] exit code=0
+[2025-09-09T08:42:27.677Z] SERVER STARTUP PID:50572
+[2025-09-09T08:42:46.179Z] SIGINT received
+[2025-09-09T08:42:46.184Z] exit code=0
+[2025-09-09T08:44:05.505Z] SERVER STARTUP PID:80624
+[2025-09-09T08:45:12.957Z] SIGINT received
+[2025-09-09T08:45:12.965Z] exit code=0
+[2025-09-09T08:49:15.094Z] SERVER STARTUP PID:70424
+[2025-09-09T08:50:01.136Z] SIGINT received
+[2025-09-09T08:50:01.140Z] exit code=0
+[2025-09-09T08:50:13.087Z] SERVER STARTUP PID:58268
+[2025-09-09T08:51:43.180Z] CLIENT_ERROR from ::1: {"diag":{"ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0","url":"http://localhost:3000/","time":"2025-09-09T08:51:43.139Z","elements":{"app-container":true,"main-header":true,"main-content":true,"video-gallery":true,"login-modal":true,"video-modal":true,"add-video-btn":true,"upload-progress":true},"scriptsCount":3,"scriptsList":["https://cdn.tailwindcss.com/","http://localhost:3000/main.js","\n        (function(){\n            const "]}}
+[2025-09-09T09:13:39.771Z] CLIENT_ERROR from ::1: {"diag":{"ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0","url":"http://localhost:3000/","time":"2025-09-09T09:13:39.768Z","elements":{"app-container":true,"main-header":true,"main-content":true,"video-gallery":true,"login-modal":true,"video-modal":true,"add-video-btn":true,"upload-progress":true},"scriptsCount":3,"scriptsList":["https://cdn.tailwindcss.com/","http://localhost:3000/main.js","\n        (function(){\n            const "]}}
+[2025-09-09T09:15:49.983Z] SERVER STARTUP PID:80412
+[2025-09-09T09:15:53.213Z] UNCAUGHT EXCEPTION: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\nattakorn.sai\Desktop\SVEO\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (C:\Users\nattakorn.sai\Desktop\SVEO\server.js:886:5)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+[2025-09-09T09:16:17.066Z] SIGINT received
+[2025-09-09T09:16:17.071Z] exit code=0
+[2025-09-09T09:22:34.496Z] SERVER STARTUP PID:22172
+[2025-09-09T09:23:08.687Z] SIGINT received
+[2025-09-09T09:23:08.691Z] exit code=0
+[2025-09-09T09:23:37.083Z] SERVER STARTUP PID:70224

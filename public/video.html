@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="th" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video - VISIONHUB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background-color: #0b1020; color: #e5e7eb; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="flex items-center justify-between mb-6">
+            <a href="/" class="text-2xl font-bold">VISIONHUB</a>
+            <div id="nav-actions" class="space-x-3"></div>
+        </nav>
+
+        <main id="video-page" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <section class="lg:col-span-2">
+                <div id="player-wrap" class="bg-gray-900 rounded-lg overflow-hidden aspect-video">
+                    <!-- Player goes here -->
+                </div>
+                <div class="mt-4">
+                    <h1 id="vid-title" class="text-2xl font-bold"></h1>
+                    <p id="vid-meta" class="text-sm text-gray-400 mt-1"></p>
+                    <div class="mt-4 flex items-center space-x-3">
+                        <button id="report-btn" class="bg-red-600 py-2 px-4 rounded text-white"><i class="fas fa-flag mr-2"></i>Report</button>
+                        <button id="fav-btn" class="bg-yellow-600 py-2 px-4 rounded text-white"><i class="fas fa-star mr-2"></i>Favorite</button>
+                    </div>
+                </div>
+
+                <div id="vid-description" class="mt-6 text-gray-300"></div>
+
+                <section id="comments" class="mt-8">
+                    <h3 class="text-xl font-semibold">Comments</h3>
+                    <div id="comment-form" class="mt-4">
+                        <textarea id="comment-text" rows="3" class="w-full bg-gray-800 p-3 rounded text-white" placeholder="Add a comment..."></textarea>
+                        <div class="mt-2 text-right"><button id="post-comment" class="bg-green-600 px-4 py-2 rounded">Post</button></div>
+                    </div>
+                    <div id="comment-list" class="mt-4 space-y-3"></div>
+                </section>
+            </section>
+            <aside>
+                <h3 class="font-semibold mb-3">Continue Watching</h3>
+                <div id="continue-list" class="space-y-3"></div>
+                <h3 class="font-semibold mt-6 mb-3">Related</h3>
+                <div id="related-list" class="space-y-3"></div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="video.js"></script>
+</body>
+</html>

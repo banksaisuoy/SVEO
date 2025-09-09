@@ -17,6 +17,12 @@ services:
     # Create a persistent volume for the database file
     volumes:
       - ./database.sqlite:/app/database.sqlite
+      - ./public/uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', ()=>process.exit(0))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Service for the ngrok tunnel
   ngrok:
@@ -36,4 +42,7 @@ services:
     command:
       - "http"
       - "app:3000"
+      - "--authtoken=${NGROK_AUTHTOKEN}"
       - "--domain=handy-charmed-elk.ngrok-free.app"
+      - "--log=stdout"
+    restart: unless-stopped
