@@ -1,14 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
 const videoController = require('../controllers/videoController');
 const { isAuthenticated, isAdmin } = require('../middleware/authMiddleware');
 
 // --- Multer Configuration ---
+const uploadDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'videos');
+fs.mkdirSync(uploadDir, { recursive: true });
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/uploads/videos/');
+        cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
         // Create a unique filename to avoid overwrites

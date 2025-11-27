@@ -1,5 +1,7 @@
-// Load environment variables
-require('dotenv').config({ path: '.env' });
+// Load environment variables when running the real application
+if (process.env.NODE_ENV !== 'test') {
+    require('dotenv').config({ path: '.env' });
+}
 
 const express = require('express');
 const session = require('express-session');
