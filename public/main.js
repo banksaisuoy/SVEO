@@ -717,7 +717,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const textEl = document.getElementById('modal-comment-text');
             postBtn.onclick = async ()=>{
                 const text = (textEl.value||'').trim(); if (!text) return;
-                const res = await apiFetch('/api/reports'); // placeholder to avoid unused
                 try {
                     const r = await apiFetch('/api/videos/' + video.id + '/comments', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ text }) });
                     if (r.ok) { textEl.value=''; openVideoModal(video); showToast(translations[currentLang]['commentPosted'] || 'Comment posted', 2500, 'success'); }
