@@ -1,0 +1,6 @@
+node_modules/
+server-debug.log
+server-run.log
+*.db
+*.sqlite
+.env

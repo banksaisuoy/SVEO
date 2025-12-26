@@ -451,6 +451,40 @@ app.delete('/api/users/:username', isAuthenticated, (req, res) => {
     });
 });
 
+// UPDATE a video (Admin only)
+app.put('/api/videos/:id', isAuthenticated, (req, res) => {
+    // Only admin may update videos
+    if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    const { id } = req.params;
+    const { title, description, url, thumbnail_url, category } = req.body;
+
+    // Construct update query dynamically
+    const updates = [];
+    const params = [];
+
+    if (title) { updates.push('title = ?'); params.push(title); }
+    if (description !== undefined) { updates.push('description = ?'); params.push(description); }
+    if (url) { updates.push('url = ?'); params.push(url); }
+    if (thumbnail_url !== undefined) { updates.push('thumbnail_url = ?'); params.push(thumbnail_url); }
+    if (category !== undefined) { updates.push('category = ?'); params.push(category); }
+
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    params.push(id);
+    const sql = `UPDATE videos SET ${updates.join(', ')} WHERE id = ?`;
+
+    db.run(sql, params, function(err) {
+        if (err) {
+            console.error('Error updating video:', err.message);
+            return res.status(500).json({ error: 'Failed to update video.' });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Video not found.' });
+        }
+        res.json({ message: 'Video updated successfully.' });
+    });
+});
+
 // DELETE a video (Admin only)
 app.delete('/api/videos/:id', isAuthenticated, (req, res) => {
     const { id } = req.params;

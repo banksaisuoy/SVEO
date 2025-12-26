@@ -1214,6 +1214,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(manageVideosModal);
         manageVideosModal.querySelectorAll('.modal-close').forEach(b=>b.addEventListener('click', ()=> hideModal(manageVideosModal)));
     }
+    const adminManageTagsBtn = document.getElementById('admin-manage-tags'); // New button handle
+
     const problemReportsModal = document.getElementById('problem-reports-modal');
     const reportsList = document.getElementById('reports-list');
     if (adminPanelBtn) {
@@ -1330,7 +1332,63 @@ document.addEventListener('DOMContentLoaded', () => {
             hideModal(adminPanelModal);
             showModal(manageCategoriesModal);
         }
+        // Manage tags
+        if (e.target.id === 'admin-manage-tags' || e.target.closest && e.target.closest('#admin-manage-tags')) {
+            hideModal(adminPanelModal);
+            showModal(manageTagsModal);
+            loadAdminTags();
+        }
     });
+
+    // Load admin tags
+    function loadAdminTags() {
+        if (!tagListAdmin) return;
+        tagListAdmin.innerHTML = (allTags || []).map(t => `
+            <div class="flex justify-between items-center bg-gray-700 p-2 rounded-md">
+                <span>${t.name}</span>
+                <button class="delete-tag-btn text-red-500 hover:text-red-400" data-id="${t.id}">${translations[currentLang]['delete']}</button>
+            </div>
+        `).join('');
+    }
+
+    // Add Tag
+    if (addTagForm) {
+        addTagForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-tag-name').value;
+            try {
+                const res = await apiFetch('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+                if (res.ok) {
+                    showToast('Tag added', 2500, 'success');
+                    document.getElementById('new-tag-name').value = '';
+                    await fetchTags(); // refresh global
+                    loadAdminTags(); // refresh list
+                } else {
+                    const d = await res.json(); showMessage(d.error || 'Failed');
+                }
+            } catch (err) { console.error(err); showMessage(translations[currentLang]['failedFetch']); }
+        });
+    }
+
+    // Delete tag (delegated)
+    if (manageTagsModal) {
+        manageTagsModal.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-tag-btn')) {
+                const id = e.target.dataset.id;
+                showConfirmModal(async (ok) => {
+                    if (!ok) return;
+                    try {
+                        const res = await apiFetch(`/api/tags/${id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            showToast('Tag deleted', 2500, 'success');
+                            await fetchTags();
+                            loadAdminTags();
+                        } else { showMessage('Failed'); }
+                    } catch (e) { console.error(e); }
+                });
+            }
+        });
+    }
 
     // Site Settings modal creator and handler
     function showSiteSettingsModal() {

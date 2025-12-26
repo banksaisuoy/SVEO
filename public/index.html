@@ -423,6 +423,35 @@
         </div>
     </div>
 
+    <!-- Manage Tags Modal -->
+    <div id="manage-tags-modal" class="modal">
+        <div class="modal-content w-full max-w-md p-6">
+            <div class="modal-header flex justify-between items-center pb-4 mb-4 border-b border-gray-700">
+                <h2 class="text-2xl font-bold text-white">Manage Tags</h2>
+                <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold mb-2 text-white">Add New Tag</h3>
+                <form id="add-tag-form" class="flex items-end space-x-2">
+                    <div class="flex-grow">
+                        <label for="new-tag-name" class="block text-sm font-medium text-gray-400">Tag Name</label>
+                        <input type="text" id="new-tag-name" required class="mt-1 block w-full bg-gray-700 text-white border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors self-end">Add</button>
+                </form>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold mb-2 text-white">Existing Tags</h3>
+                <div id="tag-list-admin" class="space-y-2">
+                    <!-- Tags will be loaded here -->
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                 <button type="button" class="modal-close bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Admin Panel Modal -->
     <div id="admin-panel-modal" class="modal">
         <div class="modal-content w-full max-w-sm p-6">
@@ -435,6 +464,7 @@
                 <button id="admin-manage-users" class="w-full text-left bg-green-600 hover:bg-green-700 p-3 rounded flex items-center space-x-3 text-white"><i class="fas fa-users w-6 text-white opacity-90"></i><span>Manage Users</span></button>
                 <button id="admin-manage-categories" class="w-full text-left bg-yellow-600 hover:bg-yellow-700 p-3 rounded flex items-center space-x-3 text-white"><i class="fas fa-list-alt w-6 text-white opacity-90"></i><span>Manage Categories</span></button>
                 <button id="admin-view-reports" class="w-full text-left bg-red-600 hover:bg-red-700 p-3 rounded flex items-center space-x-3 text-white"><i class="fas fa-flag w-6 text-white opacity-90"></i><span>View Problem Reports</span></button>
+                <button id="admin-manage-tags" class="w-full text-left bg-teal-600 hover:bg-teal-700 p-3 rounded flex items-center space-x-3 text-white"><i class="fas fa-tags w-6 text-white opacity-90"></i><span>Manage Tags</span></button>
                 <button id="admin-settings" class="w-full text-left bg-indigo-600 hover:bg-indigo-700 p-3 rounded flex items-center space-x-3 text-white"><i class="fas fa-cog w-6 text-white opacity-90"></i><span>Site Settings</span></button>
             </div>
             <div class="flex justify-end mt-6">
