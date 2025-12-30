@@ -1206,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="modal-content w-full max-w-4xl p-6">
                 <div class="modal-header flex justify-between items-center pb-4 mb-4 border-b border-gray-700">
                     <h2 class="text-2xl font-bold text-white">Manage Videos</h2>
-                    <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none">&times;</button>
+                    <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none" aria-label="Close">&times;</button>
                 </div>
                 <div id="manage-videos-list" class="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto"></div>
                 <div class="flex justify-end mt-4"><button class="modal-close bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">Close</button></div>
@@ -1341,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="modal-content w-full max-w-md p-6">
                     <div class="modal-header flex justify-between items-center pb-4 mb-4 border-b border-gray-700">
                         <h2 class="text-2xl font-bold text-white">Site Settings</h2>
-                        <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none">&times;</button>
+                        <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none" aria-label="Close">&times;</button>
                     </div>
                     <div class="space-y-3">
                         <div><label class="block text-sm text-gray-400">Site Title</label><input id="setting-title" class="mt-1 block w-full bg-gray-700 text-white p-2 rounded" /></div>
