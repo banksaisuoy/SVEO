@@ -57,16 +57,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let newRoleSelect = document.getElementById('new-role');
 
     // Helper: ensure element exists; if not, create a minimal fallback and append to appContainer
-    function ensureElement(id, tag = 'div') {
+    // Only use for critical elements to avoid creating ghost buttons
+    function ensureElement(id, tag = 'div', critical = false) {
         let el = document.getElementById(id);
         if (el) return el;
+        if (!critical) return null; // Do not create if not critical
         try {
             el = document.createElement(tag);
             el.id = id;
             // minimal stubs
             el.classList ||= [];
             el.style ||= {};
-            // ensure classList methods exist to avoid errors
             if (!el.classList || typeof el.classList.add !== 'function') {
                 el.classList = { add: () => {}, remove: () => {}, toggle: () => {} };
             }
@@ -79,57 +80,64 @@ document.addEventListener('DOMContentLoaded', () => {
     // timestamp-touch: 2025-09-09 - visual polish applied
 
     // Create fallbacks for any missing DOM nodes to prevent runtime crashes
-    appContainer = appContainer || ensureElement('app-container', 'div');
-    adminLoginBtn = adminLoginBtn || ensureElement('admin-login-btn','button');
-    adminLogoutBtn = adminLogoutBtn || ensureElement('admin-logout-btn','button');
-    loginModal = loginModal || ensureElement('login-modal','div');
-    videoGallery = videoGallery || ensureElement('video-gallery','div');
-    categoryFilter = categoryFilter || ensureElement('category-filter','div');
-    searchBar = searchBar || ensureElement('search-bar','input');
-    adminTools = adminTools || ensureElement('admin-tools','div');
-    addVideoBtn = addVideoBtn || ensureElement('add-video-btn','button');
-    manageCategoriesBtn = manageCategoriesBtn || ensureElement('manage-categories-btn','button');
-    videoModal = videoModal || ensureElement('video-modal','div');
-    manageCategoriesModal = manageCategoriesModal || ensureElement('manage-categories-modal','div');
-    loginForm = loginForm || ensureElement('login-form','form');
-    videoForm = videoForm || ensureElement('video-form','form');
-    addCategoryForm = addCategoryForm || ensureElement('add-category-form','form');
-    categoryListAdmin = categoryListAdmin || ensureElement('category-list-admin','div');
-    modalTitle = modalTitle || ensureElement('modal-title','h2');
-    videoIdInput = videoIdInput || ensureElement('video-id','input');
-    videoTitleInput = videoTitleInput || ensureElement('video-title','input');
-    videoDescriptionInput = videoDescriptionInput || ensureElement('video-description','textarea');
-    videoUrlInput = videoUrlInput || ensureElement('video-url','input');
-    videoThumbnailInput = videoThumbnailInput || ensureElement('video-thumbnail','input');
-    videoCategorySelect = videoCategorySelect || ensureElement('video-category','select');
-    videoPlayerModal = videoPlayerModal || ensureElement('video-player-modal','div');
-    videoPlayer = videoPlayer || ensureElement('video-player','div');
-    playerTitle = playerTitle || ensureElement('player-title','h3');
-    playerDescription = playerDescription || ensureElement('player-description','p');
-    confirmModal = confirmModal || ensureElement('confirm-modal','div');
-    confirmDeleteBtn = confirmDeleteBtn || ensureElement('confirm-delete-btn','button');
-    cancelDeleteBtn = cancelDeleteBtn || ensureElement('cancel-delete-btn','button');
-    messageBox = messageBox || ensureElement('message-box','div');
-    messageText = messageText || ensureElement('message-text','p');
-    closeMessageBtn = closeMessageBtn || ensureElement('close-message-btn','button');
-    themeToggleButton = themeToggleButton || ensureElement('theme-toggle-btn','button');
-    themeIcon = themeIcon || ensureElement('theme-icon','i');
-    langToggleButton = langToggleButton || ensureElement('lang-toggle-btn','button');
-    manageUsersBtn = manageUsersBtn || ensureElement('manage-users-btn','button');
-    tagFilter = tagFilter || ensureElement('tag-filter','div');
-    favoritesBtn = favoritesBtn || ensureElement('favorites-btn','button');
-    historyBtn = historyBtn || ensureElement('history-btn','button');
-    manageTagsBtn = manageTagsBtn || ensureElement('manage-tags-btn','button');
-    manageTagsModal = manageTagsModal || ensureElement('manage-tags-modal','div');
-    addTagForm = addTagForm || ensureElement('add-tag-form','form');
-    tagListAdmin = tagListAdmin || ensureElement('tag-list-admin','div');
-    videoFileInput = videoFileInput || ensureElement('video-file-input','input');
-    manageUsersModal = manageUsersModal || ensureElement('manage-users-modal','div');
-    manageUsersList = manageUsersList || ensureElement('manage-users-list','div');
-    addUserForm = addUserForm || ensureElement('add-user-form','form');
-    newUsernameInput = newUsernameInput || ensureElement('new-username','input');
-    newPasswordInput = newPasswordInput || ensureElement('new-password','input');
-    newRoleSelect = newRoleSelect || ensureElement('new-role','select');
+    appContainer = appContainer || ensureElement('app-container', 'div', true);
+    adminLoginBtn = adminLoginBtn || ensureElement('admin-login-btn','button', false);
+    adminLogoutBtn = adminLogoutBtn || ensureElement('admin-logout-btn','button', false);
+    loginModal = loginModal || ensureElement('login-modal','div', true);
+    videoGallery = videoGallery || ensureElement('video-gallery','div', true);
+    categoryFilter = categoryFilter || ensureElement('category-filter','div', false);
+    searchBar = searchBar || ensureElement('search-bar','input', false);
+    adminTools = adminTools || ensureElement('admin-tools','div', false);
+    addVideoBtn = addVideoBtn || ensureElement('add-video-btn','button', false);
+
+    // Non-critical or removed buttons - do not ensure existence
+    // manageCategoriesBtn = manageCategoriesBtn
+
+    videoModal = videoModal || ensureElement('video-modal','div', true);
+    manageCategoriesModal = manageCategoriesModal || ensureElement('manage-categories-modal','div', true);
+    loginForm = loginForm || ensureElement('login-form','form', true);
+    videoForm = videoForm || ensureElement('video-form','form', true);
+    addCategoryForm = addCategoryForm || ensureElement('add-category-form','form', false);
+    categoryListAdmin = categoryListAdmin || ensureElement('category-list-admin','div', false);
+    modalTitle = modalTitle || ensureElement('modal-title','h2', false);
+    videoIdInput = videoIdInput || ensureElement('video-id','input', false);
+    videoTitleInput = videoTitleInput || ensureElement('video-title','input', false);
+    videoDescriptionInput = videoDescriptionInput || ensureElement('video-description','textarea', false);
+    videoUrlInput = videoUrlInput || ensureElement('video-url','input', false);
+    videoThumbnailInput = videoThumbnailInput || ensureElement('video-thumbnail','input', false);
+    videoCategorySelect = videoCategorySelect || ensureElement('video-category','select', false);
+    videoPlayerModal = videoPlayerModal || ensureElement('video-player-modal','div', true);
+    videoPlayer = videoPlayer || ensureElement('video-player','div', false);
+    playerTitle = playerTitle || ensureElement('player-title','h3', false);
+    playerDescription = playerDescription || ensureElement('player-description','p', false);
+    confirmModal = confirmModal || ensureElement('confirm-modal','div', true);
+    confirmDeleteBtn = confirmDeleteBtn || ensureElement('confirm-delete-btn','button', false);
+    cancelDeleteBtn = cancelDeleteBtn || ensureElement('cancel-delete-btn','button', false);
+    messageBox = messageBox || ensureElement('message-box','div', true);
+    messageText = messageText || ensureElement('message-text','p', false);
+    closeMessageBtn = closeMessageBtn || ensureElement('close-message-btn','button', false);
+    themeToggleButton = themeToggleButton || ensureElement('theme-toggle-btn','button', false);
+    themeIcon = themeIcon || ensureElement('theme-icon','i', false);
+    langToggleButton = langToggleButton || ensureElement('lang-toggle-btn','button', false);
+
+    // manageUsersBtn = manageUsersBtn
+
+    tagFilter = tagFilter || ensureElement('tag-filter','div', false);
+    favoritesBtn = favoritesBtn || ensureElement('favorites-btn','button', false);
+    historyBtn = historyBtn || ensureElement('history-btn','button', false);
+
+    // manageTagsBtn = manageTagsBtn
+
+    manageTagsModal = manageTagsModal || ensureElement('manage-tags-modal','div', false);
+    addTagForm = addTagForm || ensureElement('add-tag-form','form', false);
+    tagListAdmin = tagListAdmin || ensureElement('tag-list-admin','div', false);
+    videoFileInput = videoFileInput || ensureElement('video-file-input','input', false);
+    manageUsersModal = manageUsersModal || ensureElement('manage-users-modal','div', true);
+    manageUsersList = manageUsersList || ensureElement('manage-users-list','div', false);
+    addUserForm = addUserForm || ensureElement('add-user-form','form', false);
+    newUsernameInput = newUsernameInput || ensureElement('new-username','input', false);
+    newPasswordInput = newPasswordInput || ensureElement('new-password','input', false);
+    newRoleSelect = newRoleSelect || ensureElement('new-role','select', false);
 
     let allVideos = [];
     let allCategories = [];
@@ -448,26 +456,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const user = data.user || null;
             // maintain current user state
             currentUser = user;
-            // If not authenticated, require login-first: hide main UI and show login modal
+
+            // Always show main UI (Public Access)
+            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+
+            // If not authenticated, adjust UI for guest
             if (!isAuthenticated) {
                 try {
                     adminLoginBtn.classList.remove('hidden');
                     adminLogoutBtn.classList.add('hidden');
                     adminTools.classList.add('hidden');
-                    document.getElementById('main-header').classList.add('hidden');
-                    document.getElementById('main-content').classList.add('hidden');
-                    // show login modal (centered screen) and do NOT load app data until authenticated
-                    showModal(loginModal);
+                    if (addVideoBtn) addVideoBtn.classList.add('hidden');
+                    if (favoritesBtn) favoritesBtn.classList.add('hidden');
+                    if (historyBtn) historyBtn.classList.add('hidden');
+                    // Do NOT show login modal automatically
                 } catch (e) { console.error('Auth check display error', e); }
-                return;
+            } else {
+                // Authenticated: show user/admin controls
+                adminLoginBtn.classList.add('hidden');
+                adminLogoutBtn.classList.remove('hidden');
+                if (favoritesBtn) favoritesBtn.classList.remove('hidden');
+                if (historyBtn) historyBtn.classList.remove('hidden');
             }
-
-            // Authenticated: show main UI
-            hideModal(loginModal);
-            document.getElementById('main-header').classList.remove('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            adminLoginBtn.classList.add('hidden');
-            adminLogoutBtn.classList.remove('hidden');
 
             // Role handling: admin vs normal user
             const isAdmin = user && user.role === 'admin';
@@ -482,18 +493,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.admin-controls').forEach(controls => {
                 if (isAdmin) controls.classList.remove('hidden'); else controls.classList.add('hidden');
             });
-            // Load app data once authenticated
+            // Load app data (Public & Authenticated)
             await fetchSettings();
             await fetchVideos();
             await fetchCategories();
             await fetchTags();
-            // show favorites/history buttons for logged-in users
-            if (favoritesBtn) favoritesBtn.classList.remove('hidden');
-            if (historyBtn) historyBtn.classList.remove('hidden');
         } catch (err) {
             console.error('Failed to check auth status:', err);
-            // On any failure to reach auth endpoint, keep login modal visible
-            try { const lm = document.getElementById('login-modal'); if (lm) lm.style.display = 'flex'; } catch(e){}
         }
     }
 
@@ -872,16 +878,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Render category buttons
+    // Render category buttons (Deprecated: unified into Tag filter)
     function displayCategories(categories) {
-        categoryFilter.innerHTML = `<button data-category="All" class="category-btn active py-2 px-4 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700">${translations[currentLang]['all']}</button>`;
-        categories.forEach(category => {
-            const button = document.createElement('button');
-            button.className = 'category-btn py-2 px-4 rounded-full text-sm font-medium transition-colors bg-gray-700 text-gray-300 hover:bg-gray-600';
-            button.setAttribute('data-category', category.name);
-            button.textContent = category.name;
-            categoryFilter.appendChild(button);
-        });
+        // No longer populating separate category filter
+        // If needed in future, code was here.
     }
 
     // Tags
@@ -1328,7 +1328,95 @@ document.addEventListener('DOMContentLoaded', () => {
         // Manage categories
         if (e.target.id === 'admin-manage-categories' || e.target.closest && e.target.closest('#admin-manage-categories')) {
             hideModal(adminPanelModal);
+            // reload categories from server to ensure admin list is current
+            await fetchCategories();
             showModal(manageCategoriesModal);
+            // Refresh category list for admin panel
+            if (categoryListAdmin) {
+                categoryListAdmin.innerHTML = (allCategories||[]).map(cat => `
+                    <div class="flex justify-between items-center bg-gray-700 p-2 rounded-md">
+                        <span>${cat.name}</span>
+                        <button class="delete-category-btn text-red-500 hover:text-red-400" data-id="${cat.id}">${translations[currentLang]['delete']}</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Manage tags
+        if (e.target.id === 'admin-manage-tags' || e.target.closest && e.target.closest('#admin-manage-tags')) {
+             hideModal(adminPanelModal);
+             await fetchTags(); // refresh
+             // Create modal if needed
+             let modal = document.getElementById('manage-tags-modal');
+             if (!modal) {
+                 modal = document.createElement('div'); modal.id = 'manage-tags-modal'; modal.className = 'modal';
+                 modal.innerHTML = `
+                    <div class="modal-content w-full max-w-md p-6">
+                        <div class="modal-header flex justify-between items-center pb-4 mb-4 border-b border-gray-700">
+                            <h2 class="text-2xl font-bold text-white">Manage Tags</h2>
+                            <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none">&times;</button>
+                        </div>
+                        <div class="mb-4">
+                            <h3 class="text-xl font-semibold mb-2 text-white">Add New Tag</h3>
+                            <div class="flex items-end space-x-2">
+                                <div class="flex-grow">
+                                    <input type="text" id="new-tag-name" placeholder="Tag Name" class="mt-1 block w-full bg-gray-700 text-white border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button id="btn-add-tag" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">Add</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2 text-white">Existing Tags</h3>
+                            <div id="tag-list-admin-container" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                        </div>
+                        <div class="flex justify-end mt-6">
+                             <button class="modal-close bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">Close</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+                // bind close
+                modal.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', () => hideModal(modal)));
+                // bind add
+                modal.querySelector('#btn-add-tag').addEventListener('click', async () => {
+                    const inp = modal.querySelector('#new-tag-name');
+                    const name = (inp.value||'').trim();
+                    if (!name) return;
+                    try {
+                        const r = await apiFetch('/api/tags', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name }) });
+                        if (r.ok) { inp.value=''; showToast('Tag added'); document.getElementById('admin-manage-tags').click(); } // reload
+                        else { const d=await r.json(); showMessage(d.error||'Error'); }
+                    } catch(e){ showMessage('Error'); }
+                });
+                // bind delete delegation
+                modal.querySelector('#tag-list-admin-container').addEventListener('click', async (ev) => {
+                    if (ev.target.classList.contains('del-tag')) {
+                        const id = ev.target.dataset.id;
+                        showConfirmModal(async (ok) => {
+                            if (!ok) return;
+                            try {
+                                const r = await apiFetch(`/api/tags/${id}`, { method:'DELETE' });
+                                if (r.ok) { showToast('Tag deleted'); document.getElementById('admin-manage-tags').click(); }
+                            } catch(e) { console.error(e); }
+                        });
+                    }
+                });
+             }
+             // Populate list
+             const c = modal.querySelector('#tag-list-admin-container');
+             // fetch all tags (raw)
+             try {
+                 const r = await apiFetch('/api/tags');
+                 if (r.ok) {
+                     const ts = await r.json();
+                     c.innerHTML = ts.map(t => `
+                        <div class="flex justify-between items-center bg-gray-700 p-2 rounded-md">
+                            <span>${t.name}</span>
+                            <button class="del-tag text-red-500 hover:text-red-400" data-id="${t.id}">Delete</button>
+                        </div>
+                     `).join('');
+                 }
+             } catch(e){}
+             showModal(modal);
         }
     });
 
