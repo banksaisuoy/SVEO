@@ -253,6 +253,17 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
             ts TEXT
         )`);
 
+        // ----------------------------------------------------------------------
+        // Performance Indexes
+        // ----------------------------------------------------------------------
+        db.run(`CREATE INDEX IF NOT EXISTS idx_view_logs_ts ON view_logs(ts)`, (err) => { if (err) console.error('Index idx_view_logs_ts error', err.message); });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_view_logs_video_id ON view_logs(video_id)`, (err) => { if (err) console.error('Index idx_view_logs_video_id error', err.message); });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_watch_history_user_id ON watch_history(user_id)`, (err) => { if (err) console.error('Index idx_watch_history_user_id error', err.message); });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_watch_history_last_watched_at ON watch_history(last_watched_at)`, (err) => { if (err) console.error('Index idx_watch_history_last_watched_at error', err.message); });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id)`, (err) => { if (err) console.error('Index idx_favorites_user_id error', err.message); });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_favorites_video_id ON favorites(video_id)`, (err) => { if (err) console.error('Index idx_favorites_video_id error', err.message); });
+        // ----------------------------------------------------------------------
+
         // ensure admin account exists in users table
         (async () => {
             try {
