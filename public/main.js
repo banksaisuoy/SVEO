@@ -906,9 +906,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const allBtn = document.createElement('button'); allBtn.className='tag-btn active'; allBtn.textContent = translations[currentLang]['all'];
         allBtn.addEventListener('click', () => { document.querySelectorAll('.tag-btn').forEach(b=>b.classList.remove('active')); allBtn.classList.add('active'); fetchVideos(); });
         tagFilter.appendChild(allBtn);
-        (tags||[]).forEach(t => { const n = (t.name||'').trim(); if (n && !seen.has(n)) { seen.add(n); combined.push({ name:n, type:'tag', id: t.id }); } });
-        // also include categories as tags but avoid duplicates; categories should be high in the list
-        (allCategories||[]).forEach(c => { const n = (c.name||'').trim(); if (n && !seen.has(n)) { seen.add(n); combined.unshift({ name:n, type:'category' }); } });
+
+        // Process categories FIRST to ensure they take precedence and appear first
+        (allCategories||[]).forEach(c => {
+            const n = (c.name||'').trim();
+            if (n && !seen.has(n)) {
+                seen.add(n);
+                combined.push({ name:n, type:'category' });
+            }
+        });
+
+        // Then process tags, skipping if already added as a category
+        (tags||[]).forEach(t => {
+            const n = (t.name||'').trim();
+            if (n && !seen.has(n)) {
+                seen.add(n);
+                combined.push({ name:n, type:'tag', id: t.id });
+            }
+        });
+
         // Render combined list (categories first, then tags)
         combined.forEach(item => {
             const b = document.createElement('button'); b.className='tag-btn'; b.textContent = item.name; if (item.type === 'category') b.classList.add('bg-yellow-600');
