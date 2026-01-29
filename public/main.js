@@ -138,6 +138,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let favoriteIds = new Set();
 
+    // App shim for Admin Modules
+    window.App = {
+        api: {
+            get: async (endpoint) => {
+                const res = await apiFetch(`/api${endpoint}`);
+                if (!res.ok) throw new Error(res.statusText);
+                return await res.json();
+            },
+            post: async (endpoint, body) => {
+                const res = await apiFetch(`/api${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error(res.statusText);
+                return await res.json();
+            },
+            put: async (endpoint, body) => {
+                const res = await apiFetch(`/api${endpoint}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) throw new Error(res.statusText);
+                return await res.json();
+            },
+            delete: async (endpoint) => {
+                const res = await apiFetch(`/api${endpoint}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(res.statusText);
+                return await res.json();
+            }
+        },
+        state: { currentUser: null },
+        navigateTo: (page) => {
+            if (page === 'home') {
+                document.getElementById('admin-container').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                document.getElementById('main-header').classList.remove('hidden');
+                fetchVideos(); // Refresh videos when returning home
+            }
+        },
+        showToast: (msg, type) => showToast(msg, 3000, type)
+    };
+
     // Small toast helper (non-blocking) for UX messages - styled
     function showToast(text, duration = 3500, type = 'neutral') {
         let t = document.getElementById('site-toast');
@@ -436,18 +472,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Helper to include credentials (cookies) with every fetch so session is preserved
     async function apiFetch(url, opts = {}) {
         opts.credentials = 'include';
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            opts.headers = opts.headers || {};
+            opts.headers['Authorization'] = `Bearer ${token}`;
+        }
         return fetch(url, opts);
     }
 
     // Check admin authentication status and show/hide controls
     async function checkAuthStatus() {
         try {
-            const res = await apiFetch('/api/auth/status');
-            const data = await res.json();
-            const isAuthenticated = data.isAuthenticated;
-            const user = data.user || null;
+            // First try JWT verification
+            const token = localStorage.getItem('authToken');
+            let isAuthenticated = false;
+            let user = null;
+
+            if (token) {
+                const res = await apiFetch('/api/auth/verify');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        isAuthenticated = true;
+                        user = data.user;
+                    }
+                } else {
+                    localStorage.removeItem('authToken');
+                }
+            }
+
+            // Fallback to legacy session check (if used)
+            if (!isAuthenticated) {
+                const res = await apiFetch('/api/auth/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.isAuthenticated) {
+                        isAuthenticated = true;
+                        user = data.user;
+                    }
+                }
+            }
+
             // maintain current user state
             currentUser = user;
+            window.App.state.currentUser = user; // Update App state for admin modules
             // If not authenticated, require login-first: hide main UI and show login modal
             if (!isAuthenticated) {
                 try {
@@ -1212,6 +1280,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Admin panel button wiring (single access point)
     const adminPanelBtn = document.getElementById('admin-panel-btn');
+
+    if (adminPanelBtn) {
+        adminPanelBtn.addEventListener('click', () => {
+            // Hide main app
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('main-header').classList.add('hidden');
+            // Show admin container
+            const adminContainer = document.getElementById('admin-container');
+            adminContainer.classList.remove('hidden');
+
+            // Render Admin Layout if empty
+            if (!adminContainer.innerHTML.trim()) {
+                adminContainer.innerHTML = `
+                    <div class="admin-panel p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-3xl font-bold text-white">Admin Panel</h2>
+                            <button id="exit-admin-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Exit Admin
+                            </button>
+                        </div>
+                        <div class="nav-tabs flex space-x-2 mb-6 overflow-x-auto pb-2">
+                            <button class="nav-tab active px-4 py-2 bg-blue-600 rounded text-white" data-tab="users">Users</button>
+                            <button class="nav-tab px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white" data-tab="videos">Videos</button>
+                            <button class="nav-tab px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white" data-tab="categories">Categories</button>
+                            <button class="nav-tab px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white" data-tab="reports">Reports</button>
+                            <button class="nav-tab px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white" data-tab="settings">Settings</button>
+                        </div>
+                        <div id="admin-content" class="bg-gray-800 rounded-lg p-6 min-h-[500px]">
+                            <!-- Module content goes here -->
+                        </div>
+                    </div>
+                `;
+
+                // Initialize Admin Modules
+                if (typeof AdminModules !== 'undefined') {
+                    window.adminModules = new AdminModules(window.App);
+                    window.adminModules.renderModule('users');
+                }
+
+                // Wire up tabs
+                adminContainer.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        adminContainer.querySelectorAll('.nav-tab').forEach(t => {
+                            t.classList.remove('bg-blue-600');
+                            t.classList.add('bg-gray-700');
+                        });
+                        e.target.classList.remove('bg-gray-700');
+                        e.target.classList.add('bg-blue-600');
+                        const tabName = e.target.dataset.tab;
+                        if (window.adminModules) window.adminModules.renderModule(tabName);
+                    });
+                });
+
+                // Wire up Exit button
+                document.getElementById('exit-admin-btn').addEventListener('click', () => {
+                    window.App.navigateTo('home');
+                });
+            }
+        });
+    }
+
+    /*
     const adminPanelModal = document.getElementById('admin-panel-modal');
     const adminManageVideosBtn = document.getElementById('admin-manage-videos');
     // create/manage videos modal element
@@ -1232,9 +1362,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const problemReportsModal = document.getElementById('problem-reports-modal');
     const reportsList = document.getElementById('reports-list');
-    if (adminPanelBtn) {
-        adminPanelBtn.addEventListener('click', () => showModal(adminPanelModal));
-    }
+    // if (adminPanelBtn) {
+    //     adminPanelBtn.addEventListener('click', () => showModal(adminPanelModal));
+    // }
     if (adminManageVideosBtn) {
         adminManageVideosBtn.addEventListener('click', async () => {
             hideModal(adminPanelModal);
