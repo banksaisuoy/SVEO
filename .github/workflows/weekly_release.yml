@@ -1,0 +1,35 @@
+name: Weekly Production Release
+
+on:
+  schedule:
+    - cron: '0 9 * * 5' # Friday 16:00 BKK
+  workflow_dispatch:
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Pull Request to Production
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: weekly production release preparation"
+          title: "🚀 Weekly Release Review [Please Review Before Merge]"
+          body: |
+            ## 🚀 Weekly Release Preparation
+            This PR contains all the God-Tier features developed by Jules this week!
+
+            **Action Required:**
+            1. Please review the code changes.
+            2. Test the UI/UX to ensure it meets the "Magnificent" standard.
+            3. Once approved, merge this PR into the `production` branch.
+
+            *Note: Merging this PR to the production branch is the final step before live deployment.*
+          branch: release/weekly-candidate
+          base: production
+          labels: "release, requires-review"
