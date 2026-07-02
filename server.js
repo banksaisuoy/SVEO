@@ -124,148 +124,150 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         console.error('Error opening database:', err.message);
     } else {
         console.log('Connected to the SQLite database.');
-        // Create the videos and categories tables if they don't exist
-        db.run(`CREATE TABLE IF NOT EXISTS videos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT,
-            url TEXT NOT NULL,
-            thumbnail_url TEXT,
-            category TEXT,
-            upload_date TEXT
-        )`, (err) => {
-            if (err) {
-                console.error('Error creating videos table:', err.message);
-            }
-        });
-        db.run(`CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
-        )`, (err) => {
-            if (err) {
-                console.error('Error creating categories table:', err.message);
-            }
-        });
-        // create users table
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user',
-            suspended INTEGER DEFAULT 0
-        )`);
-        // Ensure suspended column exists on older DBs
-        db.all(`PRAGMA table_info(users)`, [], (err, cols) => {
-            if (err) return console.error('PRAGMA error', err.message);
-            try {
-                const names = (cols || []).map(c => c.name);
-                if (!names.includes('suspended')) {
-                    db.run(`ALTER TABLE users ADD COLUMN suspended INTEGER DEFAULT 0`, (e) => {
-                        if (e) console.error('Failed to add suspended column:', e.message);
-                        else console.log('Migrated: added suspended column to users');
-                    });
+        db.serialize(() => {
+            // Create the videos and categories tables if they don't exist
+            db.run(`CREATE TABLE IF NOT EXISTS videos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                url TEXT NOT NULL,
+                thumbnail_url TEXT,
+                category TEXT,
+                upload_date TEXT
+            )`, (err) => {
+                if (err) {
+                    console.error('Error creating videos table:', err.message);
                 }
-            } catch (e) { console.error('Migration error', e); }
-        });
-        // create tags and mapping tables
-        db.run(`CREATE TABLE IF NOT EXISTS tags (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
-        )`);
-        db.run(`CREATE TABLE IF NOT EXISTS video_tags (
-            video_id INTEGER NOT NULL,
-            tag_id INTEGER NOT NULL,
-            PRIMARY KEY (video_id, tag_id)
-        )`);
-
-        // Ensure featured column exists on older videos table
-        db.all(`PRAGMA table_info(videos)`, [], (err, cols) => {
-            if (err) return console.error('PRAGMA error', err.message);
-            try {
-                const names = (cols || []).map(c => c.name);
-                if (!names.includes('featured')) {
-                    db.run(`ALTER TABLE videos ADD COLUMN featured INTEGER DEFAULT 0`, (e) => {
-                        if (e) console.error('Failed to add featured column:', e.message);
-                        else console.log('Migrated: added featured column to videos');
-                    });
+            });
+            db.run(`CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            )`, (err) => {
+                if (err) {
+                    console.error('Error creating categories table:', err.message);
                 }
-            } catch (e) { console.error('Migration error', e); }
-        });
-
-        // settings table for site-wide values (title, primary color, etc)
-        db.run(`CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )`);
-
-        // comments table (supports optional parent_id for simple replies)
-        db.run(`CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            video_id INTEGER NOT NULL,
-            user_id INTEGER,
-            username TEXT,
-            parent_id INTEGER,
-            text TEXT NOT NULL,
-            created_at TEXT
-        )`);
-        // problem reports
-        db.run(`CREATE TABLE IF NOT EXISTS problem_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            video_id INTEGER,
-            user_id INTEGER,
-            username TEXT,
-            description TEXT,
-            resolved INTEGER DEFAULT 0,
-            created_at TEXT
-        )`);
-
-        // favorites and watch history
-        db.run(`CREATE TABLE IF NOT EXISTS favorites (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            video_id INTEGER NOT NULL,
-            created_at TEXT
-        )`);
-        db.run(`CREATE TABLE IF NOT EXISTS watch_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            video_id INTEGER NOT NULL,
-            last_position REAL DEFAULT 0,
-            watched_percent REAL DEFAULT 0,
-            last_watched_at TEXT
-        )`);
-
-        // logs
-        db.run(`CREATE TABLE IF NOT EXISTS login_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            username TEXT,
-            success INTEGER,
-            ip TEXT,
-            ts TEXT
-        )`);
-        db.run(`CREATE TABLE IF NOT EXISTS view_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            video_id INTEGER,
-            position REAL,
-            watched_percent REAL,
-            ts TEXT
-        )`);
-
-        // ensure admin account exists in users table
-        (async () => {
-            try {
-                db.get(`SELECT id FROM users WHERE username = ?`, [ADMIN_USERNAME], async (err, row) => {
-                    if (err) return console.error('Error checking admin user:', err.message);
-                    if (!row) {
-                        const hash = await bcrypt.hash(ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
-                        db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')`, [ADMIN_USERNAME, hash]);
-                        console.log('Admin user created');
+            });
+            // create users table
+            db.run(`CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'user',
+                suspended INTEGER DEFAULT 0
+            )`);
+            // Ensure suspended column exists on older DBs
+            db.all(`PRAGMA table_info(users)`, [], (err, cols) => {
+                if (err) return console.error('PRAGMA error', err.message);
+                try {
+                    const names = (cols || []).map(c => c.name);
+                    if (!names.includes('suspended')) {
+                        db.run(`ALTER TABLE users ADD COLUMN suspended INTEGER DEFAULT 0`, (e) => {
+                            if (e) console.error('Failed to add suspended column:', e.message);
+                            else console.log('Migrated: added suspended column to users');
+                        });
                     }
-                });
-            } catch (e) { console.error('Failed creating admin user', e); }
-        })();
+                } catch (e) { console.error('Migration error', e); }
+            });
+            // create tags and mapping tables
+            db.run(`CREATE TABLE IF NOT EXISTS tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            )`);
+            db.run(`CREATE TABLE IF NOT EXISTS video_tags (
+                video_id INTEGER NOT NULL,
+                tag_id INTEGER NOT NULL,
+                PRIMARY KEY (video_id, tag_id)
+            )`);
+
+            // Ensure featured column exists on older videos table
+            db.all(`PRAGMA table_info(videos)`, [], (err, cols) => {
+                if (err) return console.error('PRAGMA error', err.message);
+                try {
+                    const names = (cols || []).map(c => c.name);
+                    if (!names.includes('featured')) {
+                        db.run(`ALTER TABLE videos ADD COLUMN featured INTEGER DEFAULT 0`, (e) => {
+                            if (e) console.error('Failed to add featured column:', e.message);
+                            else console.log('Migrated: added featured column to videos');
+                        });
+                    }
+                } catch (e) { console.error('Migration error', e); }
+            });
+
+            // settings table for site-wide values (title, primary color, etc)
+            db.run(`CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )`);
+
+            // comments table (supports optional parent_id for simple replies)
+            db.run(`CREATE TABLE IF NOT EXISTS comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id INTEGER NOT NULL,
+                user_id INTEGER,
+                username TEXT,
+                parent_id INTEGER,
+                text TEXT NOT NULL,
+                created_at TEXT
+            )`);
+            // problem reports
+            db.run(`CREATE TABLE IF NOT EXISTS problem_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id INTEGER,
+                user_id INTEGER,
+                username TEXT,
+                description TEXT,
+                resolved INTEGER DEFAULT 0,
+                created_at TEXT
+            )`);
+
+            // favorites and watch history
+            db.run(`CREATE TABLE IF NOT EXISTS favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                video_id INTEGER NOT NULL,
+                created_at TEXT
+            )`);
+            db.run(`CREATE TABLE IF NOT EXISTS watch_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                video_id INTEGER NOT NULL,
+                last_position REAL DEFAULT 0,
+                watched_percent REAL DEFAULT 0,
+                last_watched_at TEXT
+            )`);
+
+            // logs
+            db.run(`CREATE TABLE IF NOT EXISTS login_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT,
+                success INTEGER,
+                ip TEXT,
+                ts TEXT
+            )`);
+            db.run(`CREATE TABLE IF NOT EXISTS view_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                video_id INTEGER,
+                position REAL,
+                watched_percent REAL,
+                ts TEXT
+            )`);
+
+            // ensure admin account exists in users table
+            (async () => {
+                try {
+                    db.get(`SELECT id FROM users WHERE username = ?`, [ADMIN_USERNAME], async (err, row) => {
+                        if (err) return console.error('Error checking admin user:', err.message);
+                        if (!row) {
+                            const hash = await bcrypt.hash(ADMIN_PASSWORD, BCRYPT_SALT_ROUNDS);
+                            db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')`, [ADMIN_USERNAME, hash]);
+                            console.log('Admin user created');
+                        }
+                    });
+                } catch (e) { console.error('Failed creating admin user', e); }
+            })();
+        });
     }
 });
 
