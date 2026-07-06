@@ -9,6 +9,11 @@
     <style>
         body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background-color: #0b1020; color: #e5e7eb; }
         .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -34,13 +39,17 @@
 
                 <div id="vid-description" class="mt-6 text-gray-300"></div>
 
-                <section id="comments" class="mt-8">
-                    <h3 class="text-xl font-semibold">Comments</h3>
-                    <div id="comment-form" class="mt-4">
-                        <textarea id="comment-text" rows="3" class="w-full bg-gray-800 p-3 rounded text-white" placeholder="Add a comment..."></textarea>
-                        <div class="mt-2 text-right"><button id="post-comment" class="bg-green-600 px-4 py-2 rounded">Post</button></div>
+                <section id="comments" class="mt-8 bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 shadow-xl">
+                    <h3 class="text-xl font-semibold mb-4">Comments</h3>
+                    <div id="comment-form" class="mt-4 flex flex-col gap-3">
+                        <textarea id="comment-text" rows="3" class="w-full bg-gray-800/80 p-4 rounded-lg text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none placeholder-gray-400" placeholder="Add a comment..."></textarea>
+                        <div class="text-right">
+                            <button id="post-comment" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center inline-flex shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Post Comment
+                            </button>
+                        </div>
                     </div>
-                    <div id="comment-list" class="mt-4 space-y-3"></div>
+                    <div id="comment-list" class="mt-6 space-y-4"></div>
                 </section>
             </section>
             <aside>
