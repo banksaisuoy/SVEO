@@ -1,48 +1,158 @@
-# Jules Coding & Integration Guidelines (SVEO)
+# Jules Coding & Integration Guidelines — SVEO
 
-Welcome! This file provides instructions, API configurations, and rules for developing, testing, and securing the SVEO repository.
+> **สำคัญ**: ไฟล์นี้ถูก generate โดย orchestrator v2.1 อัตโนมัติ — อย่าแก้ไข manual
+> ห้ามใส่ API keys, tokens, หรือ secrets ใด ๆ ในไฟล์นี้
 
-## 🛠️ MCP & Third-Party Integrations
+## 🤖 MCP Servers (ใช้ผ่าน orchestrator เท่านั้น)
 
-You have access to the following backend services. Use them to verify data, deploy, or maintain UI consistency:
+ระบบ orchestrator เชื่อม MCP servers เหล่านี้ให้แล้ว — Jules session จะได้ context จาก MCP โดยอัตโนมัติ:
 
-### 1. SQLite (Database & Backend)
-- **Database File:** Check `database.sqlite` for the current table schemas.
-- **Client Initialization:** The app uses Node.js `sqlite3` or `better-sqlite3` to connect.
-- **Rules:**
-  - Always validate database queries to prevent SQL injections.
-  - Implement mock database models if you are testing features in a client-only environment.
+### 1. Jules MCP
+- **วัตถุประสงค์**: query/create Jules sessions
+- **Auth**: `JULES_API_KEY` env var (orchestrator ใช้เท่านั้น — ห้ามใส่ใน code)
+- **เมื่อใช้**: orchestrator เรียกก่อน/หลังสร้าง session
 
-### 2. Stitch (Design System & UI/UX)
-- **Design Principles:** Use Tailwind CSS (v4), Glassmorphism styling, and clean dark-theme layout.
-- **Theme:** Sleek dark-mode / high-fidelity aesthetics.
-- **Animations:** Use vanilla CSS transitions or lightweight JS animations for micro-animations (e.g. hover states, modal slide-outs).
+### 2. Render MCP
+- **วัตถุประสงค์**: trigger deploys, check service status, tail logs
+- **Auth**: `RENDER_API_KEY` env var (orchestrator ใช้เท่านั้น)
+- **เมื่อใช้**: orchestrator เรียกหลัง Jules session COMPLETED → trigger deploy
+- **Service ของ repo นี้**: ดูได้ที่ `mcp_bridge.py render-status`
 
-### 3. Render (Staging & Deployment)
-- **Service Name:** `sveo`
-- **Service ID:** `srv-d9167rok1i2s7387u66g`
-- **Auto-Deploy:** Enabled on commits to the `main` branch.
-- **Manual Trigger:** If you need to trigger a deployment test, use the environment variable `RENDER_API_KEY` (never hardcode it):
-  ```javascript
-  const renderApiKey = process.env.RENDER_API_KEY;
-  if (renderApiKey) {
-    fetch('https://api.render.com/v1/services/srv-d9167rok1i2s7387u66g/deploys', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${renderApiKey}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-  ```
+### 3. Supabase MCP
+- **วัตถุประสงค์**: query sessions table, vulnerabilities, daily metrics
+- **Auth**: `SUPABASE_SERVICE_KEY` env var (orchestrator ใช้เท่านั้น)
+- **เมื่อใช้**: orchestrator log ทุก session ลง Supabase
 
-## 🛡️ Security & Zero-Defects Standard
+### 4. GitHub MCP
+- **วัตถุประสงค์**: list branches, create PRs, manage cleanup
+- **Auth**: `GITHUB_TOKEN` env var (orchestrator ใช้เท่านั้น)
+- **เมื่อใช้**: orchestrator ดู existing jules branches ก่อนสร้าง session
 
-1. **Security Vulnerability Hardening:**
-   - Never commit hardcoded secret keys or API tokens.
-   - Always sanitize inputs against XSS and injection vulnerabilities.
-   - If an error is caught in a try/catch block, log a sanitized message; never expose raw error stacks to the client.
-2. **Build and Verification:**
-   - Always run `npm run build` or `npm test` before submitting a Pull Request.
-   - Fix all ESLint warnings and JavaScript compilation errors.
+### 5. Stitch MCP (optional)
+- **วัตถุประสงค์**: generate UI designs from text
+- **Auth**: `STITCH_API_KEY` env var
+- **เมื่อใช้**: เมื่อ Jules ต้องการ design reference สำหรับ feature ใหม่
+
+---
+
+## 📋 Repo Profile: production-app
+
+Production apps (SVEO, omniflow, Magsevo) — เน้นเสถียรภาพ ปลอดภัย
+
+### Rotation (สัดส่วนประเภทงานต่อวัน)
+| Type | % | Max/Day |
+|---|---|---|
+| Feature | 20% | 1 |
+| Bugfix | 40% | 2 |
+| Security | 30% | 1 |
+| Test | 5% | 1 |
+| Polish | 5% | 1 |
+
+### Cooldown
+- แต่ละ session ห่างกันอย่างน้อย **6 ชั่วโมง**
+- สูงสุด **6 sessions/วัน** สำหรับ repo นี้
+
+---
+
+## 🔒 Security Rules (บังคับ)
+
+### ห้ามทำเด็ดขาด:
+- ❌ ใส่ API keys, tokens, secrets ใน source code
+- ❌ ใส่ `Authorization: Bearer xxx` ใน code — ใช้ `process.env.XXX` เสมอ
+- ❌ commit `.env` ไฟล์
+- ❌ ใส่ database URLs พร้อม credentials ใน config
+
+### ต้องทำ:
+- ✅ ใช้ `process.env.VAR_NAME` สำหรับทุก secret
+- ✅ เพิ่ม env var ใน `.env.example` (เฉพาะชื่อ ไม่มีค่า)
+- ✅ validate inputs ก่อนใช้
+- ✅ sanitize user input ก่อน display (ป้องกัน XSS)
+- ✅ use parameterized queries (ป้องกัน SQL injection)
+
+---
+
+## 🛠️ Coding Standards
+
+### ฟีเจอร์ใหม่ (feature session)
+- 100-500 lines changed
+- ใช้ libraries ที่มีอยู่แล้วใน `package.json`
+- ไม่เพิ่ม dependencies ใหม่ (ยกเว้นจำเป็นจริง ๆ)
+- mobile-responsive
+- ไม่มี `console.log` ใน production code
+
+### Bug fix (bugfix session)
+- smallest possible change (1-50 lines)
+- อธิบาย root cause ใน commit message
+- เพิ่ม regression test ถ้ามี test infra
+
+### Security fix (security session)
+- ระบุ severity (critical/high/medium/low)
+- ระบุ category (xss/sqli/auth/secrets/deps/other)
+- ระบุ file:line ของ vulnerability
+- ใช้ OWASP best practices
+
+### Tests (test session)
+- ใช้ framework ที่มีอยู่ (Jest/Vitest/Playwright — เช็ค `package.json`)
+- 3-7 tests per session
+- deterministic (no flaky)
+- cover happy path + edge cases
+
+### Polish (polish session)
+- 1-3 files max
+- ใช้ existing UI library
+- ไม่เพิ่ม dependencies
+- ไม่ทำ layout shift
+
+---
+
+## 📦 Render Deploy
+
+Render service สำหรับ repo นี้ (ถ้ามี):
+- Service จะถูก trigger อัตโนมัติหลัง Jules session COMPLETED
+- ดู deploy status: `python3 mcp_bridge.py render-status`
+- ดู logs: https://dashboard.render.com/
+
+หาก deploy fail:
+- ดู build logs ใน Render dashboard
+- แก้ไข + push fix
+- Render auto-redeploy บน push ใหม่
+
+---
+
+## 🔄 Workflow
+
+```
+orchestrator.py (ทุก 30 นาที)
+    ↓
+mcp_bridge.py pre-session
+    ↓ (gather context: Render, GitHub, Supabase)
+Jules session create
+    ↓ (prompt + MCP context)
+Jules runs autonomous
+    ↓
+Jules COMPLETED
+    ↓
+mcp_bridge.py post-session
+    ↓ (trigger Render deploy)
+Supabase log update
+    ↓
+dashboard.html auto-refresh (60s)
+```
+
+---
+
+## ❓ คำถามที่พบบ่อย
+
+**Q: Jules จะรู้ได้ไงว่า repo นี้ใช้ profile ไหน?**
+A: ดูใน `repo_profiles.json` — orchestrator อ่านไฟล์นี้ก่อนสร้าง session
+
+**Q: ถ้าอยากเปลี่ยน profile?**
+A: แก้ `repo_profiles.json` ใน repo controller แล้ว push — orchestrator จะใช้ profile ใหม่ใน batch ถัดไป
+
+**Q: Jules ใช้ MCP ได้เองไหม?**
+A: ใน v2.1 — orchestrator เรียก MCP ให้ แล้ว inject context เข้า prompt ของ Jules
+   (Jules alpha ยังไม่รองรับ MCP แบบ native ในตัวเอง)
+
+**Q: ถ้า Render deploy fail?**
+A: ดูใน dashboard.html — column "Deploy" จะแสดง `build_failed`
+   ดู logs ใน Render dashboard แล้วสั่ง bugfix session ผ่าน orchestrator
