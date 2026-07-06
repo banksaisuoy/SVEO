@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Fetch site settings (title, primary color)
+    // Fetch site settings (title, primary color, theme)
     async function fetchSettings() {
         try {
             // Only fetch settings when user is admin to avoid 403 for normal users
@@ -507,6 +507,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = await res.json();
             if (s.title) document.querySelector('h1') && (document.querySelector('h1').textContent = s.title);
             if (s.primaryColor) document.documentElement.style.setProperty('--primary', s.primaryColor);
+            if (s.theme) {
+                const isLightTheme = s.theme === 'light';
+                document.body.classList.toggle('light-theme', isLightTheme);
+                localStorage.setItem('theme', s.theme);
+                if (themeIcon) {
+                    if (isLightTheme) {
+                        themeIcon.classList.remove('fa-moon');
+                        themeIcon.classList.add('fa-sun');
+                    } else {
+                        themeIcon.classList.remove('fa-sun');
+                        themeIcon.classList.add('fa-moon');
+                    }
+                }
+            }
         } catch (err) { console.error('Failed to fetch settings', err); }
     }
 
@@ -1332,40 +1346,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Site Settings modal creator and handler
+    // Site Settings handler - redirect to new dashboard page
     function showSiteSettingsModal() {
-        let modal = document.getElementById('site-settings-modal');
-        if (!modal) {
-            modal = document.createElement('div'); modal.id = 'site-settings-modal'; modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content w-full max-w-md p-6">
-                    <div class="modal-header flex justify-between items-center pb-4 mb-4 border-b border-gray-700">
-                        <h2 class="text-2xl font-bold text-white">Site Settings</h2>
-                        <button class="modal-close text-gray-500 hover:text-white text-3xl leading-none">&times;</button>
-                    </div>
-                    <div class="space-y-3">
-                        <div><label class="block text-sm text-gray-400">Site Title</label><input id="setting-title" class="mt-1 block w-full bg-gray-700 text-white p-2 rounded" /></div>
-                        <div><label class="block text-sm text-gray-400">Primary Color (hex)</label><input id="setting-primary" class="mt-1 block w-full bg-gray-700 text-white p-2 rounded" /></div>
-                    </div>
-                    <div class="flex justify-end mt-4"><button id="save-settings" class="bg-blue-600 px-4 py-2 rounded">Save</button></div>
-                </div>`;
-            document.body.appendChild(modal);
-            // attach close handler
-            modal.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', () => hideModal(modal)));
-            document.getElementById('save-settings').addEventListener('click', async () => {
-                const title = document.getElementById('setting-title').value;
-                const primaryColor = document.getElementById('setting-primary').value;
-                try {
-                    const r = await apiFetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ title, primaryColor }) });
-                    if (r.ok) { hideModal(modal); fetchSettings(); showMessage('Saved'); }
-                } catch (err) { console.error(err); }
-            });
-        }
-        // populate current
-        (async ()=>{
-            try { const r = await apiFetch('/api/settings'); if (r.ok) { const s = await r.json(); document.getElementById('setting-title').value = s.title || ''; document.getElementById('setting-primary').value = s.primaryColor || ''; } } catch(e){}
-        })();
-        showModal(modal);
+        window.location.href = '/settings.html';
     }
     // Favorites & History buttons
     if (favoritesBtn) {
