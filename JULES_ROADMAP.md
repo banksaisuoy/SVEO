@@ -4,7 +4,7 @@
 SVEO is a lightweight video‑sharing web application built with Node.js and Express. It provides user authentication, session management, and basic file‑upload capabilities using Multer. The client‑side is a simple single‑page app (SPA) with HTML, JavaScript, and CSS, offering pages for the home feed, video playback, and user settings. The back‑end uses SQLite for persistent storage and includes security middleware (Helmet, CORS, etc.) to protect the application. The project is containerized with Docker Compose for easy local development and deployment.
 
 ## Next Features
-- [ ] Implement full user registration and login flows (email/password) with bcrypt password hashing, session‑based authentication, and secure cookie handling.
+- [x] Implement full user registration and login flows (email/password) with bcrypt password hashing, session‑based authentication, and secure cookie handling.
 - [ ] Add a video upload endpoint that validates file type/size, stores video files in a dedicated directory, and records metadata (title, description, owner) in the SQLite database.
 - [ ] Create a user profile/dashboard page that lists the currently logged‑in user’s uploaded videos and provides actions to view, rename, or delete them.
 - [ ] Enhance the existing settings page to allow users to change email, set a new password, and upload a profile picture (with validation and storage).
@@ -14,3 +14,4 @@ SVEO is a lightweight video‑sharing web application built with Node.js and Exp
 - [ ] Set up an automated CI/CD pipeline (GitHub Actions) that builds a Docker image, runs tests, and deploys the container to a cloud platform (e.g., AWS ECS, DigitalOcean App Platform).
 
 ## Recent Progress
+- Completed the repository review and implemented the high‑impact feature (user registration & login) on 2026-07-15.
