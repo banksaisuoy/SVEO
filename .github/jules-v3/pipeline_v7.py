@@ -34,12 +34,12 @@ try:
 except ImportError:
     boto3 = None
 
-JULES_KEY = os.environ.get("JULES_API_KEY", "os.environ.get("JULES_API_KEY", "")")
-NEON_DB = os.environ.get("NEON_DATABASE_URL", "os.environ.get("NEON_DATABASE_URL", "")")
-RENDER_KEY = os.environ.get("RENDER_API_KEY", "os.environ.get("RENDER_API_KEY", "")")
-WASABI_ACCESS = os.environ.get("WASABI_ACCESS_KEY", "os.environ.get("WASABI_ACCESS_KEY", "")")
-WASABI_SECRET = os.environ.get("WASABI_SECRET_KEY", "os.environ.get("WASABI_SECRET_KEY", "")")
-GH_TOKEN = os.environ.get("GH_PAT", "os.environ.get("GH_PAT", "")")
+JULES_KEY = os.environ.get("JULES_API_KEY", "")
+NEON_DB = os.environ.get("NEON_DATABASE_URL", "")
+RENDER_KEY = os.environ.get("RENDER_API_KEY", "")
+WASABI_ACCESS = os.environ.get("WASABI_ACCESS_KEY", "")
+WASABI_SECRET = os.environ.get("WASABI_SECRET_KEY", "")
+GH_TOKEN = os.environ.get("GH_PAT", "")
 OWNER = "banksaisuoy"
 
 # TIER 1 — Production apps (FOCUS HERE)
