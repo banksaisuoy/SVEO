@@ -1,0 +1,27 @@
+name: v10 Monitor
+
+on:
+  schedule:
+    # Every 10 minutes (GitHub Actions min interval for free tier)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+env:
+  JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+  GH_PAT: ${{ secrets.GH_PAT }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install deps
+        run: pip install --break-system-packages psycopg2-binary || true
+      - name: Run reconcile
+        run: python3 .github/jules-v10/pipeline/reconcile.py || true

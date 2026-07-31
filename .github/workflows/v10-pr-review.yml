@@ -1,0 +1,49 @@
+name: v10 PR Quality Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+
+env:
+  GH_PAT: ${{ secrets.GH_PAT }}
+  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: |
+      startsWith(github.event.pull_request.head.ref, 'jules-') ||
+      contains(github.event.pull_request.body, 'Automated PR from Jules')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install deps
+        run: pip install --break-system-packages psycopg2-binary || true
+      - name: Review PR
+        env:
+          REPO: ${{ github.event.repository.name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0, '.github/jules-v10')
+          from modules.pr_quality_reviewer import review_pr
+          passed, score, issues = review_pr('$REPO', $PR_NUMBER)
+          print(f'\\n=== Result ===')
+          print(f'Passed: {passed}')
+          print(f'Score: {score}/100')
+          print(f'Issues: {issues}')
+          # Exit 0 always — don't fail workflow
+          "
