@@ -29,7 +29,7 @@ env:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # v10: dispatch is fast (5 min target)  # increased from 45 (was cutting off long Jules sessions)
+    timeout-minutes: 20  # v10: dispatch (5 min) + reconcile (10 min)  # increased from 45 (was cutting off long Jules sessions)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,10 +43,10 @@ jobs:
       - name: Install deps
         run: pip install --break-system-packages psycopg2-binary boto3 || true
       - name: Reconcile (before)
-        run: cd .github/jules-v3/ && python3 sync_sessions.py || true
+        run: python3 .github/jules-v10/pipeline/reconcile.py || true
       - name: Pipeline v10 (modular)
         if: github.event.inputs.mode != 'sync'
-        run: cd .github/jules-v3/ && python3 .github/jules-v10/pipeline/dispatch.py || true
+        run: python3 .github/jules-v10/pipeline/dispatch.py || true
       - name: Reconcile (after)
         if: always()
-        run: cd .github/jules-v3/ && python3 sync_sessions.py || true
+        run: python3 .github/jules-v10/pipeline/reconcile.py || true
