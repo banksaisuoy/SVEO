@@ -1,0 +1,24 @@
+name: Health Check
+
+on:
+  schedule:
+    # Every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+env:
+  NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install deps
+        run: pip install --break-system-packages psycopg2-binary || true
+      - name: Run health check
+        run: cd .github/jules-v3/ && python3 health_check.py || true
