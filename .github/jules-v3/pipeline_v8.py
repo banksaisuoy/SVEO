@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Jules v8 — Production Pipeline (drop-in replacement for v7)
+Jules v8.1 — Production Pipeline with Quality Gates (drop-in replacement for v7)
 ============================================================
 
 FIXES vs v7:
@@ -261,7 +261,9 @@ def wait_session(sid, timeout=WAIT_SESSION_TIMEOUT):
 
 
 def create_pr_from_session(repo, branch, sid, task):
-    """Create a GitHub PR from a completed Jules session's git patch"""
+    """Create a GitHub PR from a completed Jules session's git patch
+    v8.1: Added quality gates to prevent empty/duplicate PRs
+    """
     try:
         session = get_session(sid)
     except Exception as e:
@@ -280,6 +282,11 @@ def create_pr_from_session(repo, branch, sid, task):
         break
     if not patch:
         return None, "no patch in session outputs"
+
+    # === v8.1 QUALITY GATE #1: Check minimum patch size ===
+    if len(patch) < 100:
+        print(f"  │  ⚠️ Skipping: patch too small ({len(patch)} chars)")
+        return None, f"patch too small ({len(patch)} chars) — likely empty change"
 
     # Parse patch → file contents map
     files = {}
@@ -309,18 +316,40 @@ def create_pr_from_session(repo, branch, sid, task):
     if not files:
         return None, "no files parsed from patch"
 
+    # === v8.1 QUALITY GATE #2: Check at least 1 meaningful file ===
+    meaningful_files = [fp for fp in files.keys() if fp.strip() and fp != '/dev/null' and len(files[fp].strip()) > 0]
+    if len(meaningful_files) == 0:
+        print(f"  │  ⚠️ Skipping: no meaningful files in patch")
+        return None, "no meaningful files (all empty)"
+
     # Create branch from base
     branch_name = f"jules-auto-{sid[:12]}"
+
+    # === v8.1 QUALITY GATE #3: Check if PR already exists for this branch ===
+    code, existing_prs = gh("GET", f"/pulls?state=all&head={OWNER}:{branch_name}&per_page=5", repo)
+    if code == 200 and isinstance(existing_prs, list) and len(existing_prs) > 0:
+        existing = existing_prs[0]
+        print(f"  │  ⚠️ Skipping: PR #{existing.get('number')} already exists for {branch_name}")
+        return None, f"PR #{existing.get('number')} already exists for this session"
+
     code, ref = gh("GET", f"/git/refs/heads/{branch}", repo)
     if code != 200:
         return None, f"no base SHA (code={code})"
     base_sha = ref['object']['sha']
+
+    # Check if branch already exists (cleanup if so)
+    code, _ = gh("GET", f"/git/refs/heads/{branch_name}", repo)
+    if code == 200:
+        # Branch exists, delete it first to start fresh
+        gh("DELETE", f"/git/refs/heads/{branch_name}", repo)
+        print(f"  │  ℹ️ Deleted existing branch {branch_name} to recreate")
+    
     gh("POST", "/git/refs", repo, {"ref": f"refs/heads/{branch_name}", "sha": base_sha})
 
     # Update files in branch
     updated = 0
     for fp, content in files.items():
-        if not fp.strip() or fp == '/dev/null':
+        if not fp.strip() or fp == '/dev/null' or len(content.strip()) == 0:
             continue
         code, data = gh("GET", f"/contents/{fp}?ref={branch_name}", repo)
         sha = data.get('sha') if isinstance(data, dict) else None
@@ -332,21 +361,37 @@ def create_pr_from_session(repo, branch, sid, task):
         code, _ = gh("PUT", f"/contents/{fp}", repo, body)
         if code in (200, 201):
             updated += 1
+    
+    # === v8.1 QUALITY GATE #4: Verify files were actually updated ===
     if updated == 0:
-        return None, "no files updated"
+        print(f"  │  ⚠️ Skipping: 0 files updated (PR would be empty)")
+        # Cleanup the empty branch
+        gh("DELETE", f"/git/refs/heads/{branch_name}", repo)
+        return None, "0 files updated — would create empty PR"
 
-    # Create PR
+    # Create PR with detailed body
+    pr_body = f"""🤖 Automated PR from Jules session
+
+**Session**: https://jules.google.com/session/{sid}
+**Task**: {task.get('title', '?')}
+**Files changed**: {updated}
+**Patch size**: {len(patch)} chars
+
+Created by v8.1 pipeline (with quality gates)
+"""
     code, pr = gh("POST", "/pulls", repo, {
         "title": commit_msg,
         "head": branch_name,
         "base": branch,
-        "body": f"🤖 Automated PR from Jules session\n\n"
-                f"Session: https://jules.google.com/session/{sid}\n"
-                f"Task: {task.get('title', '?')}\n"
-                f"Created by v8 pipeline"
+        "body": pr_body
     })
     if code == 201 and isinstance(pr, dict):
         return pr, f"PR #{pr.get('number')}"
+    
+    # === v8.1: Handle 422 (PR already exists) gracefully ===
+    if code == 422:
+        return None, f"PR already exists (422) — skipping"
+    
     return None, f"PR failed code={code}: {pr}"
 
 

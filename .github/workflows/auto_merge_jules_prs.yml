@@ -16,10 +16,36 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'jules-') ||
       contains(github.event.pull_request.body, 'Automated PR from Jules')
     steps:
-      - name: Wait for build tests (10s grace period)
-        run: sleep 10
+      - name: Wait for build tests (15s grace period)
+        run: sleep 15
+
+      - name: Check PR is not empty
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          echo "Checking PR: $PR_URL"
+          
+          # Get PR details
+          FILES_COUNT=$(gh pr view "$PR_URL" --json files --jq '.files | length')
+          ADDITIONS=$(gh pr view "$PR_URL" --json additions --jq '.additions')
+          DELETIONS=$(gh pr view "$PR_URL" --json deletions --jq '.deletions')
+          
+          echo "Files: $FILES_COUNT, Additions: $ADDITIONS, Deletions: $DELETIONS"
+          
+          # Skip if completely empty (0 files, 0 additions, 0 deletions)
+          if [ "$FILES_COUNT" = "0" ] && [ "$ADDITIONS" = "0" ] && [ "$DELETIONS" = "0" ]; then
+            echo "⚠️ Empty PR detected — closing instead of merging"
+            gh pr close "$PR_URL" --comment "Auto-closed: empty PR (no files changed)"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "skip=false" >> $GITHUB_OUTPUT
 
       - name: Auto Merge PR
+        if: steps.check.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -33,6 +59,6 @@ jobs:
               echo "✓ Admin merged"
             else
               echo "✗ Merge failed — PR will remain open for manual review"
-              exit 0  # Don't fail the workflow
+              exit 0
             fi
           fi
