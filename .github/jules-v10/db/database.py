@@ -322,3 +322,39 @@ def get_stuck_sessions(minutes=30):
         (minutes,),
         fetch=True
     ) or []
+
+
+# === Logging helpers (used by dispatch/reconcile) ===
+def log_db(sid, repo, ptype, title):
+    """Insert session into Neon DB (legacy interface for v9 compat)."""
+    if not NEON_DB: return
+    try:
+        c = psycopg2.connect(NEON_DB, connect_timeout=10)
+        cur = c.cursor()
+        cur.execute("""INSERT INTO jules_sessions
+            (id, repo_id, title, prompt_type, state, jules_url, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, 'IN_PROGRESS', %s, NOW(), NOW())
+            ON CONFLICT (id) DO NOTHING""",
+            (sid, repo, (title or '')[:100], ptype, f"https://jules.google.com/session/{sid}"))
+        c.commit()
+        cur.close()
+        c.close()
+    except Exception as e:
+        print(f'  [DB] log_db error: {e}')
+
+
+def log_pipeline_run(repo, session_id, ai_feature, ai_model, status, error=None):
+    """Insert pipeline log entry (legacy interface)."""
+    if not NEON_DB: return
+    try:
+        c = psycopg2.connect(NEON_DB, connect_timeout=10)
+        cur = c.cursor()
+        cur.execute("""INSERT INTO jules_pipeline_logs
+            (repo_id, session_id, ai_feature, ai_model, status, error, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())""",
+            (repo, session_id, (ai_feature or '')[:200], ai_model, status, error))
+        c.commit()
+        cur.close()
+        c.close()
+    except Exception as e:
+        print(f'  [DB] log_pipeline_run error: {e}')
