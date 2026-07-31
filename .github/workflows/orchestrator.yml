@@ -2,6 +2,8 @@ name: Jules Pipeline Controller
 
 on:
   schedule:
+    # 9 runs/day at: 06,08,10,12,14,16,18,20,22 UTC
+    # = Asia/Bangkok: 13,15,17,19,21,23,01,03,05
     - cron: '0 6,8,10,12,14,16,18,20,22 * * *'
   workflow_dispatch:
     inputs:
@@ -27,7 +29,7 @@ env:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50  # increased from 45 (was cutting off long Jules sessions)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,11 +42,11 @@ jobs:
           echo '{"baseUrl":"https://internal-api.z.ai/v1","apiKey":"z-ai","token":"placeholder","userId":"github-actions"}' | sudo tee /etc/.z-ai-config > /dev/null
       - name: Install deps
         run: pip install --break-system-packages psycopg2-binary boto3 || true
-      - name: Sync
+      - name: Sync (before)
         run: cd .github/jules-v3/ && python3 sync_sessions.py || true
-      - name: Pipeline
+      - name: Pipeline v8
         if: github.event.inputs.mode != 'sync'
-        run: cd .github/jules-v3/ && python3 pipeline_v7.py || true
-      - name: Sync after
+        run: cd .github/jules-v3/ && python3 pipeline_v8.py || true
+      - name: Sync (after)
         if: always()
         run: cd .github/jules-v3/ && python3 sync_sessions.py || true

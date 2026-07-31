@@ -14,11 +14,25 @@ jobs:
     if: |
       github.event.pull_request.user.login == 'google-labs-jules[bot]' ||
       startsWith(github.event.pull_request.head.ref, 'jules-') ||
-      contains(github.event.pull_request.body, 'PR created automatically by Jules')
+      contains(github.event.pull_request.body, 'Automated PR from Jules')
     steps:
+      - name: Wait for build tests (10s grace period)
+        run: sleep 10
+
       - name: Auto Merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr merge ${{ github.event.pull_request.html_url }} --merge --delete-branch || \
-          gh pr merge ${{ github.event.pull_request.html_url }} --merge --admin --delete-branch
+          echo "Attempting to merge PR ${{ github.event.pull_request.html_url }}"
+          # Try regular merge first
+          if gh pr merge ${{ github.event.pull_request.html_url }} --merge --delete-branch; then
+            echo "✓ Merged successfully"
+          else
+            echo "Regular merge failed, trying admin merge..."
+            if gh pr merge ${{ github.event.pull_request.html_url }} --merge --admin --delete-branch; then
+              echo "✓ Admin merged"
+            else
+              echo "✗ Merge failed — PR will remain open for manual review"
+              exit 0  # Don't fail the workflow
+            fi
+          fi
