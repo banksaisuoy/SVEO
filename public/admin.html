@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - VidGallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        // Very basic redirect if not logged in
+        fetch('/api/auth/status').then(res => res.json()).then(data => {
+            if (!data.authenticated || data.user.role !== 'admin') {
+                window.location.href = '/';
+            }
+        });
+    </script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 border-r border-gray-700 hidden md:block">
+            <div class="p-6 border-b border-gray-700">
+                <a href="/" class="flex items-center text-xl font-bold hover:text-purple-400">
+                    <i class="fas fa-video text-purple-500 mr-2"></i> VidGallery
+                </a>
+            </div>
+            <nav class="p-4 space-y-2">
+                <a href="/admin.html" class="block px-4 py-2 bg-purple-600 rounded-lg text-white font-medium">
+                    <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                </a>
+                <a href="/" class="block px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="fas fa-home mr-2"></i> Return to Gallery
+                </a>
+                <button onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/')" class="w-full text-left px-4 py-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-lg transition-colors mt-8">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-8">
+            <h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+                    <div class="text-gray-400 text-sm font-medium mb-1">Total Videos</div>
+                    <div class="text-3xl font-bold" id="stat-videos">-</div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+                    <div class="text-gray-400 text-sm font-medium mb-1">Categories</div>
+                    <div class="text-3xl font-bold" id="stat-categories">-</div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+                <div class="space-x-4">
+                    <a href="/" class="inline-block bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        Manage Videos (in Gallery)
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Load stats
+        fetch('/api/videos').then(r=>r.json()).then(d => {
+            const el = document.getElementById('stat-videos');
+            if(el) el.textContent = d.length;
+        }).catch(console.error);
+        
+        fetch('/api/categories').then(r=>r.json()).then(d => {
+            const el = document.getElementById('stat-categories');
+            if(el) el.textContent = d.length;
+        }).catch(console.error);
+    </script>
+</body>
+</html>
