@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Video Management - VidGallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        // Check admin session
+        fetch('/api/login', { method: 'POST', body: JSON.stringify({}), headers: { 'Content-Type': 'application/json' } })
+            .then(res => res.json())
+            .then(data => {
+                // If not authenticated (this is a slight hack because /api/login POST acts as a check if no body given but properly it returns 401 or existing session)
+                if (!data.isAuthenticated || data.user?.role !== 'admin') {
+                    // window.location.href = '/'; // uncomment to enable redirect
+                }
+            }).catch(console.error);
+    </script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 border-r border-gray-700 hidden md:block">
+            <div class="p-6 border-b border-gray-700">
+                <a href="/" class="flex items-center text-xl font-bold hover:text-purple-400">
+                    <i class="fas fa-video text-purple-500 mr-2"></i> VidGallery Admin
+                </a>
+            </div>
+            <nav class="p-4 space-y-2">
+                <a href="/admin.html" class="block px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                </a>
+                <a href="/admin/index.html" class="block px-4 py-2 bg-purple-600 rounded-lg text-white font-medium">
+                    <i class="fas fa-film mr-2"></i> Videos
+                </a>
+                <a href="/" class="block px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="fas fa-home mr-2"></i> Return to Gallery
+                </a>
+                <button onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/')" class="w-full text-left px-4 py-2 text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-lg transition-colors mt-8">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-8 relative">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold">Video Management</h1>
+                <button id="add-video-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Video
+                </button>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-700 border-b border-gray-600 text-gray-300 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 text-center">Thumbnail</th>
+                            <th class="py-3 px-6 text-left">Title</th>
+                            <th class="py-3 px-6 text-left">Category</th>
+                            <th class="py-3 px-6 text-center">Date</th>
+                            <th class="py-3 px-6 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="videos-table-body" class="text-gray-300 text-sm font-light">
+                        <!-- Videos will be injected here via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+
+    <!-- Add/Edit Video Modal -->
+    <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl shadow-lg w-full max-w-lg border border-gray-700">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-bold">Add Video</h3>
+                <button id="close-modal" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="video-form" class="p-6 space-y-4">
+                <input type="hidden" id="video-id">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Title *</label>
+                    <input type="text" id="video-title" required class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                    <textarea id="video-description" rows="3" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Category</label>
+                    <select id="video-category" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500">
+                        <option value="">Select a category</option>
+                        <!-- Categories injected here -->
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Video File <span id="video-req">*</span></label>
+                    <input type="file" id="video-file" accept="video/mp4,video/webm" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                    <p id="video-help" class="text-xs text-gray-400 mt-1 hidden">Leave empty to keep existing file.</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Thumbnail File</label>
+                    <input type="file" id="thumbnail-file" accept="image/jpeg,image/png,image/webp" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-white hover:file:bg-gray-700">
+                    <p id="thumbnail-help" class="text-xs text-gray-400 mt-1 hidden">Leave empty to keep existing thumbnail.</p>
+                </div>
+                
+                <div id="form-error" class="text-red-400 text-sm hidden"></div>
+                
+                <div class="pt-4 flex justify-end space-x-3">
+                    <button type="button" id="cancel-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-medium transition-colors">Cancel</button>
+                    <button type="submit" id="save-btn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors">Save Video</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl shadow-lg w-full max-w-sm border border-gray-700 p-6 text-center">
+            <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Delete Video?</h3>
+            <p class="text-gray-400 mb-6">Are you sure you want to delete this video? This action cannot be undone.</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-delete" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-medium transition-colors">Cancel</button>
+                <button id="confirm-delete" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-medium transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let videos = [];
+        let categories = [];
+        let deleteId = null;
+        let isEdit = false;
+
+        const tableBody = document.getElementById('videos-table-body');
+        const videoModal = document.getElementById('video-modal');
+        const deleteModal = document.getElementById('delete-modal');
+        const videoForm = document.getElementById('video-form');
+        const formError = document.getElementById('form-error');
+
+        // Fetch Categories
+        async function fetchCategories() {
+            try {
+                const res = await fetch('/api/categories');
+                if (res.ok) {
+                    categories = await res.json();
+                    const select = document.getElementById('video-category');
+                    categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.name;
+                        option.textContent = cat.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (err) { console.error('Error fetching categories', err); }
+        }
+
+        // Fetch Videos
+        async function fetchVideos() {
+            try {
+                const res = await fetch('/api/admin/videos');
+                if (res.ok) {
+                    videos = await res.json();
+                    renderTable();
+                }
+            } catch (err) { console.error('Error fetching videos', err); }
+        }
+
+        function escapeHTML(str) {
+            return (str || '').replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag]));
+        }
+
+        function renderTable() {
+            tableBody.innerHTML = '';
+            videos.forEach(video => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-700 hover:bg-gray-750 transition-colors';
+                
+                const thumb = video.thumbnail_url ? `<img src="${video.thumbnail_url}" class="w-16 h-10 object-cover rounded shadow">` : '<div class="w-16 h-10 bg-gray-600 rounded flex items-center justify-center text-xs">No img</div>';
+                
+                const date = new Date(video.created_at).toLocaleDateString();
+
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-center">
+                        <div class="flex items-center justify-center">${thumb}</div>
+                    </td>
+                    <td class="py-3 px-6 text-left whitespace-nowrap">
+                        <span class="font-medium">${escapeHTML(video.title)}</span>
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        <span class="bg-purple-900 text-purple-200 py-1 px-3 rounded-full text-xs">${escapeHTML(video.category || 'None')}</span>
+                    </td>
+                    <td class="py-3 px-6 text-center">${date}</td>
+                    <td class="py-3 px-6 text-center">
+                        <div class="flex item-center justify-center space-x-3">
+                            <button onclick="openEditModal(${video.id})" class="text-blue-400 hover:text-blue-300" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="openDeleteModal(${video.id})" class="text-red-400 hover:text-red-300" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Modal Logic
+        document.getElementById('add-video-btn').addEventListener('click', () => {
+            isEdit = false;
+            document.getElementById('modal-title').textContent = 'Add Video';
+            videoForm.reset();
+            document.getElementById('video-id').value = '';
+            document.getElementById('video-req').style.display = 'inline';
+            document.getElementById('video-help').classList.add('hidden');
+            document.getElementById('thumbnail-help').classList.add('hidden');
+            formError.classList.add('hidden');
+            videoModal.classList.remove('hidden');
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => videoModal.classList.add('hidden'));
+        document.getElementById('cancel-btn').addEventListener('click', () => videoModal.classList.add('hidden'));
+
+        window.openEditModal = (id) => {
+            isEdit = true;
+            const video = videos.find(v => v.id === id);
+            if (!video) return;
+
+            document.getElementById('modal-title').textContent = 'Edit Video';
+            document.getElementById('video-id').value = video.id;
+            document.getElementById('video-title').value = video.title;
+            document.getElementById('video-description').value = video.description || '';
+            document.getElementById('video-category').value = video.category || '';
+            
+            // Files are optional on edit
+            document.getElementById('video-file').value = '';
+            document.getElementById('thumbnail-file').value = '';
+            document.getElementById('video-req').style.display = 'none';
+            document.getElementById('video-help').classList.remove('hidden');
+            document.getElementById('thumbnail-help').classList.remove('hidden');
+            
+            formError.classList.add('hidden');
+            videoModal.classList.remove('hidden');
+        };
+
+        // Form Submit
+        videoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formError.classList.add('hidden');
+            
+            const btn = document.getElementById('save-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('video-title').value);
+            formData.append('description', document.getElementById('video-description').value);
+            formData.append('category', document.getElementById('video-category').value);
+            
+            const videoFile = document.getElementById('video-file').files[0];
+            const thumbFile = document.getElementById('thumbnail-file').files[0];
+            
+            if (videoFile) formData.append('video', videoFile);
+            if (thumbFile) formData.append('thumbnail', thumbFile);
+
+            if (!isEdit && !videoFile) {
+                formError.textContent = 'Video file is required for new videos.';
+                formError.classList.remove('hidden');
+                btn.textContent = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            const id = document.getElementById('video-id').value;
+            const url = isEdit ? `/api/admin/videos/${id}` : '/api/admin/videos';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    body: formData
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    videoModal.classList.add('hidden');
+                    fetchVideos(); // Refresh list
+                } else {
+                    formError.textContent = data.error || 'Failed to save video.';
+                    formError.classList.remove('hidden');
+                }
+            } catch (err) {
+                formError.textContent = 'Network error occurred.';
+                formError.classList.remove('hidden');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // Delete Logic
+        window.openDeleteModal = (id) => {
+            deleteId = id;
+            deleteModal.classList.remove('hidden');
+        };
+
+        document.getElementById('cancel-delete').addEventListener('click', () => {
+            deleteId = null;
+            deleteModal.classList.add('hidden');
+        });
+
+        document.getElementById('confirm-delete').addEventListener('click', async () => {
+            if (!deleteId) return;
+            const btn = document.getElementById('confirm-delete');
+            const originalText = btn.textContent;
+            btn.textContent = 'Deleting...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/admin/videos/${deleteId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    deleteModal.classList.add('hidden');
+                    fetchVideos();
+                } else {
+                    alert('Failed to delete video');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                deleteId = null;
+            }
+        });
+
+        // Init
+        fetchCategories();
+        fetchVideos();
+    </script>
