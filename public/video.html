@@ -1,64 +1,29 @@
-<!DOCTYPE html>
-<html lang="th" class="antialiased">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video - VISIONHUB</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background-color: #0b1020; color: #e5e7eb; }
-        .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <nav class="flex items-center justify-between mb-6">
-            <a href="/" class="text-2xl font-bold">VISIONHUB</a>
-            <div id="nav-actions" class="space-x-3"></div>
-        </nav>
-
-        <main id="video-page" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <section class="lg:col-span-2">
-                <div id="player-wrap" class="bg-gray-900 rounded-lg overflow-hidden aspect-video">
-                    <!-- Player goes here -->
-                </div>
-                <div class="mt-4">
-                    <h1 id="vid-title" class="text-2xl font-bold"></h1>
-                    <p id="vid-meta" class="text-sm text-gray-400 mt-1"></p>
                     <div class="mt-4 flex items-center space-x-3">
                         <button id="report-btn" class="bg-red-600 py-2 px-4 rounded text-white"><i class="fas fa-flag mr-2"></i>Report</button>
                         <button id="fav-btn" class="bg-yellow-600 py-2 px-4 rounded text-white"><i class="fas fa-star mr-2"></i>Favorite</button>
+                        <button id="add-to-playlist-btn" class="bg-purple-600 py-2 px-4 rounded text-white"><i class="fas fa-list mr-2"></i>Add to Playlist</button>
                     </div>
                 </div>
 
-                <div id="vid-description" class="mt-6 text-gray-300"></div>
-
-                <section id="comments" class="mt-8 bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 shadow-xl">
-                    <h3 class="text-xl font-semibold mb-4">Comments</h3>
-                    <div id="comment-form" class="mt-4 flex flex-col gap-3">
-                        <textarea id="comment-text" rows="3" class="w-full bg-gray-800/80 p-4 rounded-lg text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none placeholder-gray-400" placeholder="Add a comment..."></textarea>
-                        <div class="text-right">
-                            <button id="post-comment" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center inline-flex shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Post Comment
-                            </button>
-                        </div>
-                    </div>
-                    <div id="comment-list" class="mt-6 space-y-4"></div>
-                </section>
-            </section>
-            <aside>
-                <h3 class="font-semibold mb-3">Continue Watching</h3>
-                <div id="continue-list" class="space-y-3"></div>
-                <h3 class="font-semibold mt-6 mb-3">Related</h3>
-                <div id="related-list" class="space-y-3"></div>
-            </aside>
         </main>
+    </div>
+
+    <!-- Playlist Modal -->
+    <div id="playlist-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-2xl relative">
+            <button id="close-playlist-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <h2 class="text-2xl font-bold mb-4" data-lang-key="addToPlaylist">เพิ่มลงในเพลย์ลิสต์</h2>
+            <div id="modal-playlists-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                <!-- User playlists will be loaded here -->
+            </div>
+            <hr class="border-gray-700 my-4">
+            <form id="modal-create-playlist-form" class="flex flex-col gap-3">
+                <input type="text" id="modal-new-playlist-name" placeholder="สร้างเพลย์ลิสต์ใหม่..." class="bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-lang-key="createPlaylist"><i class="fas fa-plus mr-2"></i>สร้าง & เพิ่ม</button>
+            </form>
+        </div>
     </div>
 
     <script src="video.js"></script>
