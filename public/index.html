@@ -1,36 +1,250 @@
-                    <div class="flex items-center space-x-3">
-                        <button id="favorites-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors hidden"><i class="fas fa-star mr-2"></i>รายการโปรด</button>
-                        <button id="history-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors hidden"><i class="fas fa-history mr-2"></i>ประวัติ</button>
-                        <button id="playlists-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors hidden" data-lang-key="playlists"><i class="fas fa-list mr-2"></i>เพลย์ลิสต์</button>
-                        <button id="add-video-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors hidden"><i class="fas fa-plus mr-2"></i>เพิ่มวิดีโอ</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Gallery</title>
+    <!-- Tailwind CSS (via CDN for now, but will be compiled later) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 border-b border-gray-700 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <i class="fas fa-video text-purple-500 text-2xl mr-2"></i>
+                    <span class="font-bold text-xl tracking-tight">VidGallery</span>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-2xl px-8">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </span>
+                        <input type="text" id="search-input" placeholder="Search videos..." class="w-full bg-gray-700 text-white rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600 transition-colors">
                     </div>
-                    <div id="admin-tools" class="flex space-x-4 hidden">
-            <!-- Tag Filter Buttons (moved above categories for visibility) -->
-            <section id="tag-filter" class="flex flex-wrap gap-2 mb-4"></section>
+                </div>
 
-            <!-- Playlists View (hidden by default) -->
-            <section id="playlists-view" class="mb-8 hidden">
-                <h2 class="text-2xl font-bold mb-4 flex items-center"><i class="fas fa-list mr-3 text-purple-500"></i> <span data-lang-key="myPlaylists">เพลย์ลิสต์ของฉัน</span></h2>
-                <div class="mb-4">
-                    <form id="create-playlist-form" class="flex space-x-2">
-                        <input type="text" id="new-playlist-name" placeholder="ชื่อเพลย์ลิสต์ใหม่..." class="bg-gray-700 text-white rounded-lg px-4 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-purple-500" required>
-                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-lang-key="createPlaylist"><i class="fas fa-plus mr-2"></i>สร้าง</button>
-                    </form>
-                </div>
-                <div id="playlists-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- Playlists will be rendered here -->
-                </div>
-                <div id="playlist-videos-view" class="mt-8 hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 id="current-playlist-title" class="text-xl font-bold text-white flex items-center"><i class="fas fa-list-alt mr-2 text-purple-400"></i> <span></span></h3>
-                        <button id="back-to-playlists-btn" class="text-gray-400 hover:text-white transition-colors" data-lang-key="backToPlaylists"><i class="fas fa-arrow-left mr-2"></i>กลับ</button>
+                <!-- Right Nav Items -->
+                <div class="flex items-center space-x-4">
+                    <!-- Language Toggle -->
+                    <button id="lang-toggle" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium transition-colors">
+                        <i class="fas fa-globe mr-1"></i> <span id="current-lang">EN</span>
+                    </button>
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <!-- Login Button -->
+                    <button id="login-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </button>
+                    <!-- Admin User Dropdown (Hidden initially) -->
+                    <div id="admin-menu" class="hidden relative">
+                        <button id="admin-dropdown-btn" class="flex items-center space-x-2 text-gray-300 hover:text-white">
+                            <i class="fas fa-user-shield text-purple-400"></i>
+                            <span>Admin</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="admin-dropdown-content" class="hidden absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 border border-gray-700 z-50">
+                            <a href="/admin.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</a>
+                            <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                        </div>
                     </div>
-                    <div id="playlist-videos-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <!-- Playlist videos will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Admin Toolbar (Hidden initially) -->
+        <div id="admin-toolbar" class="hidden mb-6 bg-gray-800 p-4 rounded-lg shadow-md border border-gray-700 flex justify-between items-center">
+            <h2 class="text-lg font-bold text-white flex items-center"><i class="fas fa-tools mr-2 text-purple-400"></i>Admin Controls</h2>
+            <div class="flex space-x-3">
+                <button id="manage-categories-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm">
+                    <i class="fas fa-tags mr-2"></i>Manage Categories
+                </button>
+                <button id="add-video-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm">
+                    <i class="fas fa-plus mr-2"></i>Add Video
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- Sidebar / Categories -->
+            <aside class="w-full md:w-64 flex-shrink-0">
+                <div class="bg-gray-800 rounded-lg p-4 shadow-md sticky top-4 border border-gray-700">
+                    <h3 class="font-bold text-lg mb-4 text-white uppercase tracking-wider text-sm flex items-center border-b border-gray-700 pb-2" data-lang-key="categories">
+                        <i class="fas fa-folder-open mr-2 text-purple-400"></i> Categories
+                    </h3>
+                    <ul id="categories-list" class="space-y-2">
+                        <li>
+                            <button class="w-full text-left px-3 py-2 rounded-md bg-purple-600 text-white font-medium transition-colors" data-category-id="all">
+                                <i class="fas fa-th-large mr-2"></i> All Videos
+                            </button>
+                        </li>
+                        <!-- Categories will be injected here -->
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Video Grid -->
+            <section class="flex-1">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white" id="current-category-title" data-lang-key="allVideos">All Videos</h2>
+                    <!-- Sort/Filter controls could go here -->
+                </div>
+                
+                <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Video cards will be injected here -->
+                    <div class="col-span-full flex justify-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
                     </div>
+                </div>
+                
+                <!-- Pagination (Optional) -->
+                <div id="pagination" class="mt-8 flex justify-center space-x-2 hidden">
+                    <!-- Pagination buttons injected here -->
                 </div>
             </section>
+        </div>
+    </main>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <section class="lg:col-span-2">
-                    <!-- Trending -->
+    <!-- Footer -->
+    <footer class="bg-gray-800 border-t border-gray-700 mt-12 py-8 text-center text-gray-400">
+        <p>&copy; 2024 VidGallery. All rights reserved.</p>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-gray-700 transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white"><i class="fas fa-lock mr-2 text-purple-500"></i>Admin Login</h2>
+                <button id="close-login-modal" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="login-error" class="hidden mb-4 p-3 bg-red-900 border border-red-500 text-red-200 rounded-md text-sm"></div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="username">Username</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400"><i class="fas fa-user"></i></span>
+                        <input class="w-full bg-gray-700 text-white rounded-lg pl-10 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600" id="username" type="text" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="password">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400"><i class="fas fa-key"></i></span>
+                        <input class="w-full bg-gray-700 text-white rounded-lg pl-10 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600" id="password" type="password" required>
+                    </div>
+                </div>
+                <button class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors mt-6 shadow-lg" type="submit">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Video Form Modal (Admin) -->
+    <div id="video-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50 overflow-y-auto pt-10 pb-10 backdrop-blur-sm">
+        <div class="bg-gray-800 rounded-xl p-8 max-w-2xl w-full shadow-2xl border border-gray-700 my-auto">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                <h2 class="text-2xl font-bold text-white" id="video-modal-title">Add New Video</h2>
+                <button id="close-video-modal" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <form id="video-form" class="space-y-5">
+                <input type="hidden" id="video-id">
+                
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="video-title">Title *</label>
+                    <input class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600" id="video-title" type="text" required>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="video-description">Description</label>
+                    <textarea class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600 h-24 resize-none" id="video-description"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-300 text-sm font-bold mb-2" for="video-category">Category</label>
+                        <select id="video-category" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600">
+                            <option value="">Select a category</option>
+                            <!-- Dynamically populated -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 text-sm font-bold mb-2" for="video-tags">Tags (JSON array string)</label>
+                        <input class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600" id="video-tags" type="text" placeholder='["tag1", "tag2"]'>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="video-url">Video URL (Optional, overrides upload)</label>
+                    <input class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600" id="video-url" type="url" placeholder="https://youtube.com/...">
+                </div>
+
+                <!-- File Uploads -->
+                <div class="border border-dashed border-gray-600 rounded-lg p-4 bg-gray-750">
+                    <h3 class="text-sm font-bold text-gray-300 mb-3"><i class="fas fa-file-upload mr-2"></i>File Uploads</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-400 text-xs font-bold mb-1">Video File (if no URL provided)</label>
+                            <input type="file" id="video-file" accept="video/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-xs font-bold mb-1">Thumbnail Image</label>
+                            <input type="file" id="video-thumbnail" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-white hover:file:bg-gray-700 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center mt-2">
+                    <input type="checkbox" id="video-published" class="mr-2 h-4 w-4 text-purple-600 focus:ring-purple-500 bg-gray-700 border-gray-600 rounded" checked>
+                    <label class="text-gray-300 text-sm font-bold" for="video-published">Published</label>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-700 mt-6">
+                    <button type="button" id="cancel-video-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" id="save-video-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-lg flex items-center">
+                        <i class="fas fa-save mr-2"></i>Save Video
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+</body>
+</html>
+
+    <!-- Category Management Modal (Admin) -->
+    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl border border-gray-700">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white"><i class="fas fa-tags mr-2 text-purple-500"></i>Manage Categories</h2>
+                <button id="close-category-modal" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div id="manage-categories-list" class="mb-6 max-h-60 overflow-y-auto space-y-2">
+                <!-- List populated dynamically -->
+            </div>
+            
+            <form id="add-category-form" class="flex space-x-2">
+                <input type="text" id="new-category-name" placeholder="New Category Name..." class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-600" required>
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-lg">
+                    Add
+                </button>
+            </form>
+        </div>
+    </div>
