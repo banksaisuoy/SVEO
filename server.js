@@ -1,57 +1,40 @@
-const session = require('express-session');
-const bcrypt = require('bcrypt');
-const helmet = require('helmet');
-const { rateLimit } = require('express-rate-limit');
-const csurf = require('csurf');
-const { isAuthenticated, isAdmin } = require('./src/middleware/auth');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
-// fs and path already declared above for early logging
-const sqlite3 = require('sqlite3').verbose();
-const cors = require('cors');
-const multer = require('multer');
-const app = express();
+require("dotenv").config();
+const app = require("./app");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const multer = require("multer");
+const { isAuthenticated, isAdmin } = require("./src/middleware/auth");
+const { strictLimiter, generalLimiter } = require("./config/security");
+
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(helmet());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
-
-
-
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback_secret',
-    resave: false,
-    cookie: { secure: false }
-}));
-
-const csrfProtection = csurf({ cookie: false });
-
-// Serve CSRF token to clients
-app.get('/api/csrf-token', csrfProtection, (req, res) => {
-    res.status(200).json({ csrfToken: req.csrfToken() });
-});
-
-// Apply CSRF protection conditionally to mutating methods
-app.use((req, res, next) => {
-    if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
-        return csrfProtection(req, res, next);
-    }
-    next();
-});
-
-const dbPath = require('path').join(__dirname, 'database.sqlite');
+const dbPath = path.join(__dirname, "database.sqlite");
 const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
+  if (err) {
+    console.error("Database connection error:", err);
+  }
 });
 
-// Mount new routes
-app.use('/api/videos', require('./routes/videos')(db, uploadMiddleware, isAdmin, isAuthenticated));
-app.use('/api/admin', require('./routes/admin')(db, uploadMiddleware, isAdmin, isAuthenticated));
-app.use('/api/categories', require('./routes/categories')(db, isAdmin, isAuthenticated));
+const uploadMiddleware = multer({ dest: "public/uploads/" });
 
-// Start the server
+app.use("/api/", generalLimiter);
+
+app.use("/api/auth", strictLimiter, require("./routes/auth")());
+
+app.use(
+  "/api/videos",
+  require("./routes/videos")(db, uploadMiddleware, isAdmin, isAuthenticated),
+);
+app.use(
+  "/api/admin",
+  strictLimiter,
+  require("./routes/admin")(db, uploadMiddleware, isAdmin, isAuthenticated),
+);
+app.use(
+  "/api/categories",
+  require("./routes/categories")(db, isAdmin, isAuthenticated),
+);
+
 app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
