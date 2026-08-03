@@ -1,37 +1,50 @@
-const express = require("express");
-const session = require("express-session");
-const helmet = require("helmet");
 const csurf = require("csurf");
 const cors = require("cors");
 const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(helmet());
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        mediaSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  })
+);
+
+app.use((req, res, next) => {
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
+
 app.use(cors());
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "fallback_secret",
+    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'), // Rotate if not set
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false },
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production', 
+      httpOnly: true,
+      sameSite: 'strict'
+    },
   }),
 );
-
-const csrfProtection = csurf({ cookie: false });
-
-app.get("/api/csrf-token", csrfProtection, (req, res) => {
-  res.status(200).json({ csrfToken: req.csrfToken() });
-});
-
-app.use((req, res, next) => {
-  if (["POST", "PUT", "DELETE"].includes(req.method)) {
-    return csrfProtection(req, res, next);
-  }
-  next();
-});
-
-module.exports = app;
