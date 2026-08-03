@@ -153,13 +153,20 @@ def upsert_repo_memory(repo_id, **fields):
     """Update repo memory fields."""
     if not fields:
         return 0
-    set_parts = [f"{k} = %s" for k in fields.keys()]
+    field_names = list(fields.keys())
+    field_values = list(fields.values())
+    # INSERT: repo_id + field values (each %s)
+    # ON CONFLICT: field values AGAIN (each %s)
+    # Total params: 1 (repo_id) + N (insert) + N (conflict update) = 1 + 2*N
+    insert_placeholders = ', '.join(['%s'] * len(field_names))
+    set_parts = [f"{k} = %s" for k in field_names]
     set_parts.append("updated_at = NOW()")
-    values = list(fields.values()) + [repo_id]
-    sql = f"""INSERT INTO jules_repo_memory (repo_id, {', '.join(fields.keys())}, updated_at)
-              VALUES (%s, {', '.join(['%s']*len(fields))}, NOW())
-              ON CONFLICT (repo_id) DO UPDATE SET {', '.join(set_parts)}"""
-    params = [repo_id] + list(fields.values())
+    set_clause = ', '.join(set_parts)
+    sql = f"""INSERT INTO jules_repo_memory (repo_id, {', '.join(field_names)}, updated_at)
+              VALUES (%s, {insert_placeholders}, NOW())
+              ON CONFLICT (repo_id) DO UPDATE SET {set_clause}"""
+    # Params: [repo_id] + field_values (for INSERT) + field_values (for ON CONFLICT)
+    params = [repo_id] + field_values + field_values
     return execute(sql, params)
 
 def add_task_to_memory(repo_id, task_title, task_type, pr_number=None, success=True):

@@ -24,11 +24,17 @@ from modules.recovery_manager import check_stuck_sessions
 
 
 def get_session_state_from_jules(sid):
-    """Get fresh state from Jules API."""
+    """Get fresh state from Jules API. Returns None if session deleted (404)."""
     jules = get_jules()
     try:
         return jules.get_session(sid)
     except Exception as e:
+        err_str = str(e)
+        if '404' in err_str or 'Not Found' in err_str:
+            # Session was deleted on Jules side — mark as ARCHIVED in DB
+            print(f"  [reconcile] session {sid[:12]} deleted on Jules — marking ARCHIVED")
+            update_session_v10(sid, v10_state='ARCHIVED', v10_phase='deleted_on_jules')
+            return None
         print(f"  [reconcile] get_session({sid[:12]}) error: {e}")
         return None
 
@@ -230,10 +236,24 @@ def main():
     ensure_schema()
     start_pipeline_run(run_id, phase='reconcile')
     
-    # 1. Check stuck sessions first
+    # 1. Check stuck sessions first (both Jules-side and DB-side)
     print("\n[1] Check stuck sessions (>30 min)...")
-    n_stuck = check_stuck_sessions()
-    print(f"  ✓ Handled {n_stuck} stuck sessions")
+    n_stuck = check_stuck_sessions()  # Jules-side: nudge/archive
+    print(f"  ✓ Handled {n_stuck} stuck sessions (Jules-side)")
+    
+    # Also clean up DB-side stuck sessions (IN_PROGRESS > 6h with no Jules session)
+    from db.database import execute
+    db_cleaned = execute("""
+        UPDATE jules_sessions
+        SET state = 'FAILED',
+            error_message = 'stuck > 6h, Jules session not found (auto-marked by reconcile)',
+            updated_at = NOW()
+        WHERE state = 'IN_PROGRESS'
+          AND created_at < NOW() - INTERVAL '6 hours'
+          AND v10_state NOT IN ('PR_CREATED', 'ARCHIVED')
+    """)
+    if db_cleaned and db_cleaned > 0:
+        print(f"  ✓ Marked {db_cleaned} DB stuck sessions as FAILED")
     
     # 2. Get sessions that need attention
     print("\n[2] Get sessions to reconcile...")
