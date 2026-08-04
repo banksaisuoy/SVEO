@@ -45,5 +45,9 @@ jobs:
           print(f'Passed: {passed}')
           print(f'Score: {score}/100')
           print(f'Issues: {issues}')
-          # Exit 0 always — don't fail workflow
+          if not passed:
+            print('\\n⚠️ PR REJECTED — auto-merge will be blocked')
+            sys.exit(1)
+          else:
+            print('\\n✅ PR APPROVED — auto-merge can proceed')
           "
