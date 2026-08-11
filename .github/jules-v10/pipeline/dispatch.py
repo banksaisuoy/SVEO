@@ -169,7 +169,7 @@ def process_repo(repo_state, run_id):
         prompt=task.get('jules_prompt', 'Review and improve. Output git patch.'),
         repo=repo, branch=metadata['branch'],
         title=task.get('title', 'feat: improvement'),
-        require_plan_approval=True
+        require_plan_approval=False  # v10.1: False = Jules just does it (no plan wait)
     )
     if not sid:
         print(f"  │  ✗ Session creation FAILED")

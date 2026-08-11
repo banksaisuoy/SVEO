@@ -142,44 +142,76 @@ If no security issues found, add ONE security enhancement (e.g., input sanitizat
     },
     'small_feature': {
         'title_prefix': 'Builder',
-        'persona': 'You are "Builder" 🔨 — a focused developer who adds small, well-defined features.',
-        'instruction': """Your mission: Add ONE small, self-contained feature.
+        'persona': 'You are a senior full-stack engineer working as an autonomous developer.',
+        'instruction': """GOAL: Add ONE small, self-contained feature to this web app.
 
-Rules:
-- Feature must touch MAXIMUM 3 files
-- Feature must not break existing functionality
-- Feature must be testable
-- Feature must be useful to users
+MINDSET:
+- Act like a real developer, not an assistant
+- Focus on real-world usability
+- Keep changes small and safe
 
-Good examples:
-- Add a loading spinner to a slow component
-- Add keyboard shortcut for a common action
-- Add empty state UI for a list
-- Add a "copy to clipboard" button
+RULES:
+- Touch MAXIMUM 3 files
+- Do NOT break existing functionality
+- Do NOT add new frameworks
+- Every change must be production-safe
 
-Bad examples (DON'T do these):
+GOOD examples:
+- Add a loading spinner
+- Add keyboard shortcut
+- Add empty state UI
+- Add "copy to clipboard" button
+
+BAD examples:
 - Add authentication system (too big)
-- Refactor the entire codebase (too risky)
-- Add a new database table (too complex)
+- Refactor entire codebase (too risky)
 
-Output requirements:
-- Implement the feature completely
-- Don't leave TODO comments
-- Output git patch
-
-If you're unsure about the feature, output an empty patch instead of guessing.""",
+OUTPUT: Implement the feature. Output git patch.""",
         'expected_files': '1-3',
         'success_rate': 0.5,
     },
+    'autonomous_dev': {
+        'title_prefix': 'Autonomous Dev',
+        'persona': 'You are a senior full-stack engineer working as an autonomous developer.',
+        'instruction': """GOAL:
+Continuously develop, improve, and expand this web application.
+You must think, research, design, build, test, and fix — in a loop.
+
+MINDSET:
+- Act like a real developer, not an assistant
+- Take initiative to improve the system without being told
+- Focus on real-world usability and long-term maintainability
+- The system is used daily in production
+
+DAILY LOOP:
+1. 🔍 Research — identify useful improvements based on real-world usability
+2. 🧠 Plan — what to build and why (keep it small and practical)
+3. 🛠 Implement — clean, minimal code (keep architecture intact)
+4. 🐞 Self-review — check for bugs, edge cases, null/undefined, async issues
+5. 🔁 Regression check — ensure existing features still work
+6. 🛡 Stability — add fail-safe if needed (try/catch, fallback)
+
+IMPORTANT RULES:
+- NO full rewrite
+- NO adding new frameworks
+- Keep changes small and safe
+- Every change must be production-safe
+- Think like someone maintaining this system long-term
+
+OUTPUT: Implement ONE improvement. Output git patch.""",
+        'expected_files': '2-5',
+        'success_rate': 0.9,  # PROVEN: 100% success in real data
+    },
 }
 
-# Task type distribution (must sum to 1.0)
+# Task type distribution — based on what ACTUALLY works
+# "Autonomous Developer" prompt: 100% success rate (24KB patches)
+# "Sentinel" prompt: 70% success rate
+# "Tester" prompt: 0% success rate (Jules can't find test targets)
 TASK_DISTRIBUTION = {
-    'code_review': 0.30,      # 30% — high value, high success
-    'test_generation': 0.30,  # 30% — always produces output
-    'documentation': 0.15,    # 15% — low risk, useful
-    'security_audit': 0.15,   # 15% — high value
-    'small_feature': 0.10,    # 10% — only if well-scoped
+    'autonomous_dev': 0.50,   # 50% — PROVEN to work (24KB patches!)
+    'security_audit': 0.25,   # 25% — Sentinel persona works
+    'small_feature': 0.25,    # 25% — focused features
 }
 
 
@@ -239,45 +271,11 @@ def extract_recent_tasks(progress_text):
 
 
 def pick_task_type(repo_memory, last_5_tasks):
-    """Pick task type based on distribution + recent history."""
-    # Count types in recent tasks
-    type_counts = {t: 0 for t in TASK_DISTRIBUTION}
-    for task in last_5_tasks:
-        tl = task.lower()
-        if 'review' in tl or 'reviewer' in tl:
-            type_counts['code_review'] += 1
-        elif 'test' in tl or 'tester' in tl:
-            type_counts['test_generation'] += 1
-        elif 'doc' in tl or 'docs' in tl:
-            type_counts['documentation'] += 1
-        elif 'security' in tl or 'sentinel' in tl:
-            type_counts['security_audit'] += 1
-        elif 'feature' in tl or 'builder' in tl:
-            type_counts['small_feature'] += 1
-    
-    # Calculate deficit (target - actual)
-    deficits = {}
-    for t, target_pct in TASK_DISTRIBUTION.items():
-        # Target count out of 5 recent tasks
-        target_count = target_pct * 5
-        deficits[t] = target_count - type_counts[t]
-    
-    # Pick the type with highest deficit (most below target)
-    # Add some randomness to avoid always picking the same
+    """Pick task type based on distribution."""
     import random
-    weighted = []
-    for t, deficit in deficits.items():
-        weight = max(0.1, deficit)  # minimum weight
-        weighted.append((t, weight))
-    
-    total = sum(w for _, w in weighted)
-    r = random.random() * total
-    cumulative = 0
-    for t, w in weighted:
-        cumulative += w
-        if r <= cumulative:
-            return t
-    return 'code_review'  # default
+    types = list(TASK_DISTRIBUTION.keys())
+    weights = list(TASK_DISTRIBUTION.values())
+    return random.choices(types, weights=weights, k=1)[0]
 
 
 def pick_task(repo, ptype, repo_metadata, repo_memory):
