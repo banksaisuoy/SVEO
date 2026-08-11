@@ -14,7 +14,7 @@ from db.database import (
 )
 from clients.api_clients import get_jules, get_github
 from modules.decision_engine import (
-    TIER1, TIER2, STOP_REPOS,
+    ACTIVE_REPOS, STOP_REPOS,
     get_repo_metadata, pick_task, review_task_safety
 )
 from modules.recovery_manager import health_check, check_circuit_breakers
@@ -86,8 +86,7 @@ def select_repos(sessions_today, rem_quota):
     now = datetime.now(timezone.utc)
     hour_bucket = now.hour // 2
     include_tier2 = (hour_bucket % 3 == 0)
-    candidates = list(TIER1)
-    if include_tier2: candidates.extend(TIER2)
+    candidates = list(ACTIVE_REPOS)  # Only repos that actually build
     
     total_weight = sum(w for _, _, _, _, w in candidates)
     repo_states = []

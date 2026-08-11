@@ -2,7 +2,7 @@
 import os
 
 # Pipeline settings
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "4"))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "2"))
 DAILY_QUOTA = int(os.environ.get("DAILY_QUOTA", "100"))
 WAIT_PLAN_TIMEOUT = int(os.environ.get("WAIT_PLAN_TIMEOUT", "300"))
 WAIT_SESSION_TIMEOUT = int(os.environ.get("WAIT_SESSION_TIMEOUT", "1800"))

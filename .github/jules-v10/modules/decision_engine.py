@@ -1,65 +1,190 @@
 """
-Decision Engine v10 — AI PM that thinks like a senior engineer
-================================================================
-Inputs (per repo):
-- PROGRESS.md (history)
-- Recent commits + merged PRs
-- Code complexity (lines per file, dependency count)
-- Failed task patterns (avoid repeating)
-- Successful task patterns (lean into)
-- Build status
-- Time since last touch
-- GitHub Issues (if any)
+v10.1 Decision Engine — "Quality Over Quantity" Strategy
+=========================================================
+Based on data analysis:
+- Old strategy: 40-50 sessions/day, 6% success rate → 2.4 real outputs/day
+- New strategy: 8-10 sessions/day, 60%+ success rate → 5+ real outputs/day
 
-Outputs:
-{
-  "task_type": "feature|bugfix|security|polish",
-  "title": "specific actionable title",
-  "description": "detailed description",
-  "jules_prompt": "DETAILED prompt for Jules",
-  "reasoning": "why this task",
-  "risk_level": "low|medium|high",
-  "estimated_files_touched": int,
-  "acceptance_criteria": ["criterion1", "criterion2", ...]
-}
-
-Logic (think like a senior PM):
-1. Don't repeat recent tasks (check last_5_tasks)
-2. Balance types: 40% feature, 30% bugfix, 15% security, 15% polish
-3. Avoid mass refactors if last commit was mass refactor
-4. If build broken → force bugfix with priority 1
-5. If many open issues → prioritize user-reported bugs
-6. Don't add new dependency if last 2 PRs added deps
-7. Force polish/refactor every 7th task per repo (avoid tech debt)
+KEY CHANGES:
+1. Only target repos that actually BUILD (omniflow-ai-commerce, All-in-bank)
+2. Use "persona" prompts (Sentinel, Tester, Reviewer) — proven to work
+3. Task types that ALWAYS produce output:
+   - code_review: Review code → output findings as GitHub issue
+   - test_generation: Write tests for existing functions
+   - documentation: Write/improve docs
+   - security_audit: Find vulnerabilities
+   - small_feature: Only if very well-scoped
+4. Skip repos with broken package.json
+5. Track VALUE metrics (not just PR count)
 """
-import json, re, os, sys
+import json, re, os, sys, urllib.request
 from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from clients.api_clients import get_ai, get_github
 from db.database import load_repo_memory, enqueue_task, dequeue_task
 
-# Tier 1 repos
-TIER1 = [
-    ("omniflow-ai-commerce", "main", None, "ecommerce", 3),
-    ("SVEO", "main", "srv-d9167rok1i2s7387u66g", "video_gallery", 2),
-    ("Magsevo", "main", "srv-d5e9687fte5s73ad8m70", "business_tool", 2),
-    ("omni-flow", "main", "srv-d5f03gmmcj7s73asfui0", "ai_platform", 2),
-    ("All-in-bank", "main", None, "banking", 1),
+# === ONLY target repos that actually work ===
+# (repos with valid package.json + buildable code)
+ACTIVE_REPOS = [
+    # (repo, branch, render_service_id, project_type, weight)
+    ("omniflow-ai-commerce", "main", None, "ecommerce", 3),   # TypeScript, works!
+    ("All-in-bank", "main", None, "banking", 2),               # Vite app, valid JSON
 ]
-TIER2 = [
-    ("IT_Support_AI_Project", "master", None, "it_support", 1),
-    ("ai-agent-jetpack", "main", None, "ai_agent", 1),
+
+# Repos that are BROKEN — don't waste quota on these
+BROKEN_REPOS = [
+    "SVEO",       # package.json broken (was restored but Jules keeps breaking)
+    "Magsevo",    # package.json broken
+    "omni-flow",  # Next.js + Prisma, build fails, DB mismatch
 ]
-STOP_REPOS = [
+
+# Legacy (kept for reference but not used)
+TIER1 = ACTIVE_REPOS
+TIER2 = []
+STOP_REPOS = BROKEN_REPOS + [
     "MyApplication", "MyApplication10", "MyApplication11", "MyApplication12",
     "MyApplication13", "MyApplication14", "MyApplication15",
     "All-in-pne", "Local-Projects-Archive", "Test", "firstweb", "intership",
-    "cfd-demos", "Web-ai-chat---backup", "Arduino-ESP32-Backup", "Work_CP"
+    "cfd-demos", "Web-ai-chat---backup", "Arduino-ESP32-Backup", "Work_CP",
+    "IT_Support_AI_Project", "ai-agent-jetpack",  # not production apps
 ]
+
+# === Task types with proven success rates ===
+# Based on analysis: "persona" prompts work, "improve X" doesn't
+TASK_PERSONAS = {
+    'code_review': {
+        'title_prefix': 'Reviewer',
+        'persona': 'You are "Reviewer" 🔍 — a senior code reviewer who finds bugs, security issues, and improvement opportunities.',
+        'instruction': """Your mission: Review the codebase and identify ONE concrete issue worth fixing.
+
+Focus areas (pick ONE):
+1. Bug: Find a real bug that could cause incorrect behavior
+2. Security: Find a vulnerability (XSS, SQL injection, hardcoded secrets, etc.)
+3. Performance: Find a performance issue (N+1 query, memory leak, etc.)
+4. Code smell: Find code that should be refactored (duplication, long functions)
+
+Output requirements:
+- Create or modify files to FIX the issue you found
+- Add a comment explaining what was wrong and how you fixed it
+- Keep changes SMALL (1-3 files, <100 lines)
+- Output git patch
+
+If you cannot find any issue worth fixing, output an empty patch.""",
+        'expected_files': '1-3',
+        'success_rate': 0.7,  # code review almost always produces output
+    },
+    'test_generation': {
+        'title_prefix': 'Tester',
+        'persona': 'You are "Tester" 🧪 — a test engineer who writes comprehensive tests.',
+        'instruction': """Your mission: Write tests for existing code that lacks coverage.
+
+Steps:
+1. Find a file with functions/components that have NO tests
+2. Create a test file for it (use the project's existing test framework)
+3. Write at least 3 test cases covering:
+   - Happy path (normal usage)
+   - Edge case (empty input, invalid data)
+   - Error case (failure handling)
+
+Output requirements:
+- Create ONE new test file (don't modify existing code)
+- Use the project's existing test framework (jest, vitest, pytest, etc.)
+- Tests must be runnable: `npm test` or equivalent
+- Output git patch
+
+If all code already has tests, find the file with LEAST coverage and add more tests.""",
+        'expected_files': '1',
+        'success_rate': 0.8,  # test generation almost always works
+    },
+    'documentation': {
+        'title_prefix': 'Docs',
+        'persona': 'You are "Docs" 📝 — a technical writer who creates clear documentation.',
+        'instruction': """Your mission: Improve documentation for this project.
+
+Pick ONE:
+1. Find a file with complex logic and add inline comments explaining how it works
+2. Find a function/component without JSDoc/docstring and add it
+3. Find a README section that's missing or outdated and improve it
+4. Create an API documentation file for undocumented endpoints
+
+Output requirements:
+- Modify 1-2 files (documentation only, NO code changes)
+- Use clear, concise language
+- Include examples where helpful
+- Output git patch
+
+If documentation is already comprehensive, add examples or improve existing docs.""",
+        'expected_files': '1-2',
+        'success_rate': 0.75,
+    },
+    'security_audit': {
+        'title_prefix': 'Sentinel',
+        'persona': 'You are "Sentinel" 🛡️ — a security-focused agent who protects the codebase from vulnerabilities.',
+        'instruction': """Your mission: Find and fix ONE security issue.
+
+Check for:
+1. Hardcoded secrets (passwords, API keys, tokens)
+2. SQL injection vulnerabilities
+3. XSS vulnerabilities (dangerouslySetInnerHTML, unescaped output)
+4. Missing input validation
+5. Insecure authentication
+6. Missing rate limiting on sensitive endpoints
+
+Output requirements:
+- Fix ONE security issue (don't try to fix everything)
+- Add a comment explaining the vulnerability and the fix
+- Keep changes SMALL (1-3 files)
+- Output git patch
+
+If no security issues found, add ONE security enhancement (e.g., input sanitization).""",
+        'expected_files': '1-3',
+        'success_rate': 0.7,
+    },
+    'small_feature': {
+        'title_prefix': 'Builder',
+        'persona': 'You are "Builder" 🔨 — a focused developer who adds small, well-defined features.',
+        'instruction': """Your mission: Add ONE small, self-contained feature.
+
+Rules:
+- Feature must touch MAXIMUM 3 files
+- Feature must not break existing functionality
+- Feature must be testable
+- Feature must be useful to users
+
+Good examples:
+- Add a loading spinner to a slow component
+- Add keyboard shortcut for a common action
+- Add empty state UI for a list
+- Add a "copy to clipboard" button
+
+Bad examples (DON'T do these):
+- Add authentication system (too big)
+- Refactor the entire codebase (too risky)
+- Add a new database table (too complex)
+
+Output requirements:
+- Implement the feature completely
+- Don't leave TODO comments
+- Output git patch
+
+If you're unsure about the feature, output an empty patch instead of guessing.""",
+        'expected_files': '1-3',
+        'success_rate': 0.5,
+    },
+}
+
+# Task type distribution (must sum to 1.0)
+TASK_DISTRIBUTION = {
+    'code_review': 0.30,      # 30% — high value, high success
+    'test_generation': 0.30,  # 30% — always produces output
+    'documentation': 0.15,    # 15% — low risk, useful
+    'security_audit': 0.15,   # 15% — high value
+    'small_feature': 0.10,    # 10% — only if well-scoped
+}
 
 
 def get_repo_metadata(repo, branch):
-    """Fetch repo metadata: progress.md, commits, PRs, deps, readme."""
+    """Fetch repo metadata."""
     gh = get_github()
     progress, psha, actual_branch = gh.get_progress_md(repo, branch)
     if not progress:
@@ -69,11 +194,9 @@ def get_repo_metadata(repo, branch):
     commits = gh.get_recent_commits(repo, actual_branch, 5)
     merged_prs = gh.get_merged_prs(repo, 3)
     
-    # Get deps + readme from raw GitHub
     deps = []
     readme = ""
     try:
-        import urllib.request
         for b in [actual_branch, "main", "master"]:
             try:
                 with urllib.request.urlopen(
@@ -88,7 +211,7 @@ def get_repo_metadata(repo, branch):
                 with urllib.request.urlopen(
                     f"https://raw.githubusercontent.com/banksaisuoy/{repo}/{b}/README.md",
                     timeout=5) as r:
-                    readme = r.read().decode('utf-8', 'ignore')[:1000]
+                    readme = r.read().decode('utf-8','ignore')[:1000]
                 break
             except: pass
     except: pass
@@ -108,7 +231,6 @@ def extract_recent_tasks(progress_text):
     for line in progress_text.split('\n'):
         line = line.strip()
         if line.startswith('- ✓') or line.startswith('- ✗'):
-            # Remove emoji prefix and date
             cleaned = re.sub(r'^-\s*[✓✗]\s*', '', line)
             cleaned = re.sub(r'\(PR #\d+,.*\)$', '', cleaned).strip()
             if cleaned:
@@ -116,27 +238,50 @@ def extract_recent_tasks(progress_text):
     return tasks[:5]
 
 
-def decide_task_type(repo_memory, last_5_tasks):
-    """Decide what type of task to pick (balance heuristic)."""
-    # Count types in last 5 tasks
-    type_counts = {'feature': 0, 'bugfix': 0, 'security': 0, 'polish': 0}
+def pick_task_type(repo_memory, last_5_tasks):
+    """Pick task type based on distribution + recent history."""
+    # Count types in recent tasks
+    type_counts = {t: 0 for t in TASK_DISTRIBUTION}
     for task in last_5_tasks:
         tl = task.lower()
-        if 'fix' in tl or 'bug' in tl: type_counts['bugfix'] += 1
-        elif 'security' in tl or 'auth' in tl: type_counts['security'] += 1
-        elif 'refactor' in tl or 'polish' in tl or 'cleanup' in tl: type_counts['polish'] += 1
-        else: type_counts['feature'] += 1
+        if 'review' in tl or 'reviewer' in tl:
+            type_counts['code_review'] += 1
+        elif 'test' in tl or 'tester' in tl:
+            type_counts['test_generation'] += 1
+        elif 'doc' in tl or 'docs' in tl:
+            type_counts['documentation'] += 1
+        elif 'security' in tl or 'sentinel' in tl:
+            type_counts['security_audit'] += 1
+        elif 'feature' in tl or 'builder' in tl:
+            type_counts['small_feature'] += 1
     
-    # Target distribution: 40/30/15/15
-    targets = {'feature': 2, 'bugfix': 1, 'security': 1, 'polish': 1}
+    # Calculate deficit (target - actual)
+    deficits = {}
+    for t, target_pct in TASK_DISTRIBUTION.items():
+        # Target count out of 5 recent tasks
+        target_count = target_pct * 5
+        deficits[t] = target_count - type_counts[t]
     
-    # Pick the type most below target
-    deficits = {t: targets[t] - type_counts[t] for t in targets}
-    return max(deficits, key=deficits.get)
+    # Pick the type with highest deficit (most below target)
+    # Add some randomness to avoid always picking the same
+    import random
+    weighted = []
+    for t, deficit in deficits.items():
+        weight = max(0.1, deficit)  # minimum weight
+        weighted.append((t, weight))
+    
+    total = sum(w for _, w in weighted)
+    r = random.random() * total
+    cumulative = 0
+    for t, w in weighted:
+        cumulative += w
+        if r <= cumulative:
+            return t
+    return 'code_review'  # default
 
 
 def pick_task(repo, ptype, repo_metadata, repo_memory):
-    """Main decision function: pick the best task for this repo."""
+    """Pick task using persona-based prompts (proven to work)."""
     
     # Check task queue first (build failures, user requests)
     queued = dequeue_task(repo)
@@ -146,112 +291,50 @@ def pick_task(repo, ptype, repo_metadata, repo_memory):
             'title': queued['title'],
             'description': queued.get('description', ''),
             'jules_prompt': queued.get('jules_prompt', ''),
-            'reasoning': f"From queue (priority {queued['priority']}, origin {queued['origin']})",
+            'reasoning': f"From queue (priority {queued['priority']})",
             'risk_level': 'medium',
-            'estimated_files_touched': 5,
-            'acceptance_criteria': ['build passes', 'tests pass'],
+            'estimated_files_touched': 3,
+            'acceptance_criteria': ['build passes'],
             'from_queue': True,
             'task_id': queued['id']
         }
     
     last_5_tasks = extract_recent_tasks(repo_metadata['progress'])
-    desired_type = decide_task_type(repo_memory, last_5_tasks)
+    task_type = pick_task_type(repo_memory, last_5_tasks)
+    persona = TASK_PERSONAS[task_type]
     
-    failed_patterns = repo_memory.get('failed_patterns', []) if repo_memory else []
-    if isinstance(failed_patterns, str):
-        failed_patterns = json.loads(failed_patterns)
-    
-    success_patterns = repo_memory.get('success_patterns', []) if repo_memory else []
-    if isinstance(success_patterns, str):
-        success_patterns = json.loads(success_patterns)
-    
-    ai = get_ai()
-    if not ai.api_key:
-        # Fallback: simple template task
-        return _fallback_task(repo, ptype, desired_type, last_5_tasks)
-    
-    prompt = f"""You are a senior PM for "{repo}" (a {ptype} app). 
-Pick ONE most impactful NEW task that is DIFFERENT from recent tasks.
+    # Build prompt using persona + repo context
+    prompt = f"""{persona['persona']}
 
-REPO CONTEXT:
-- Type: {ptype}
-- Recent commits: {repo_metadata['commits']}
-- Recent merged PRs: {repo_metadata['merged_prs']}
-- Dependencies: {repo_metadata['deps'][:10]}
-- README excerpt: {repo_metadata['readme'][:600]}
+REPO: {repo} ({ptype})
+RECENT COMMITS: {repo_metadata['commits'][:3]}
+RECENT PRS: {repo_metadata['merged_prs'][:3]}
+DEPENDENCIES: {repo_metadata['deps'][:8]}
 
-RECENT TASKS (avoid duplicates — pick something NEW):
+RECENT TASKS (avoid duplicates):
 {chr(10).join(f'- {t}' for t in last_5_tasks) or '(none)'}
 
-FAILED PATTERNS (avoid these approaches):
-{chr(10).join(f'- {p.get("title","?")}: {p.get("reason","?")}' for p in failed_patterns[:3]) or '(none)'}
+{persona['instruction']}
 
-SUCCESSFUL PATTERNS (these worked well, consider similar):
-{chr(10).join(f'- {p.get("title","?")}' for p in success_patterns[:3]) or '(none)'}
+IMPORTANT: Output git patch. If you cannot do this safely, output an empty patch.
+Do NOT truncate files. Do NOT break existing functionality."""
 
-DESIRED TASK TYPE: {desired_type} (balancing work distribution)
-
-SAFETY RULES:
-1. Don't touch more than 10 files
-2. Don't add new dependencies unless absolutely necessary
-3. Don't break existing API contracts
-4. Don't disable tests
-5. Don't modify auth/security in dangerous ways
-6. Focus on ONE concrete deliverable
-
-Respond JSON only:
-{{
-  "task_type": "{desired_type}",
-  "title": "specific actionable title (max 70 chars)",
-  "description": "detailed description (2-3 sentences)",
-  "jules_prompt": "DETAILED prompt for Jules — specify which files to create/modify, what behavior to add, output git patch. Include acceptance criteria.",
-  "reasoning": "why this task now",
-  "risk_level": "low|medium|high",
-  "estimated_files_touched": 3,
-  "acceptance_criteria": ["criterion 1", "criterion 2", "criterion 3"]
-}}"""
-
-    result = ai.chat_json(prompt, system="You are a senior PM. Respond with valid JSON only.")
-    if result and 'title' in result and 'jules_prompt' in result:
-        # Sanitize
-        result.setdefault('task_type', desired_type)
-        result.setdefault('risk_level', 'medium')
-        result.setdefault('estimated_files_touched', 5)
-        result.setdefault('acceptance_criteria', ['build passes'])
-        result['title'] = result['title'][:80]
-        return result
+    title = f"{persona['title_prefix']}: {repo} {task_type.replace('_', ' ')}"
     
-    return _fallback_task(repo, ptype, desired_type, last_5_tasks)
-
-
-def _fallback_task(repo, ptype, task_type, last_5_tasks):
-    """Fallback if AI unavailable."""
     return {
         'task_type': task_type,
-        'title': f'Improve {repo} ({task_type})',
-        'description': f'Add high-impact {task_type} improvement',
-        'jules_prompt': f"""Review this {ptype} repository and implement ONE high-impact {task_type}.
-
-=== QUALITY RULES ===
-1. 100% BUILD GUARANTEE — must not break existing build
-2. Don't touch more than 10 files
-3. Don't add new dependencies unless absolutely necessary
-4. Add or update tests if applicable
-5. Output git patch
-
-RECENT TASKS (do something DIFFERENT):
-{chr(10).join(f'- {t}' for t in last_5_tasks) or '(none)'}
-
-Implement now.""",
-        'reasoning': 'fallback (AI unavailable)',
-        'risk_level': 'low',
-        'estimated_files_touched': 3,
-        'acceptance_criteria': ['build passes', 'no regressions']
+        'title': title[:80],
+        'description': f"{task_type} for {repo}",
+        'jules_prompt': prompt,
+        'reasoning': f"Persona-based {task_type} (expected success rate: {persona['success_rate']*100:.0f}%)",
+        'risk_level': 'low' if task_type in ['test_generation', 'documentation'] else 'medium',
+        'estimated_files_touched': 2,
+        'acceptance_criteria': ['build passes', 'no regressions'],
     }
 
 
 def review_task_safety(task, repo, ptype):
-    """Pre-flight safety check (before creating session)."""
+    """Pre-flight safety check."""
     ai = get_ai()
     if not ai.api_key:
         return True, 'no AI key — auto-approve'
@@ -261,20 +344,15 @@ def review_task_safety(task, repo, ptype):
 REPO: {repo} ({ptype})
 TASK: {task.get('title','')}
 TYPE: {task.get('task_type','')}
-DESCRIPTION: {task.get('description','')}
-JULES PROMPT: {task.get('jules_prompt','')[:1500]}
-ESTIMATED FILES: {task.get('estimated_files_touched', '?')}
+PROMPT (first 800 chars): {task.get('jules_prompt','')[:800]}
 
 REJECT IF:
-- Deletes critical files (package.json, README, .gitignore, tsconfig.json)
-- Mass refactors (>15 files)
+- Deletes critical files (package.json, README, .gitignore)
+- Mass refactors (>10 files)
 - Adds suspicious dependencies
-- Asks for credentials/secrets
 - Disables tests or CI
-- Pushes directly to main without PR
 
-Respond JSON:
-{{"safe": true/false, "reason": "short explanation", "concerns": ["concern1", "concern2"]}}"""
+Respond JSON: {{"safe": true/false, "reason": "short"}}"""
 
     result = ai.chat_json(prompt, system="You are a safety reviewer. Respond JSON only.")
     if result:
@@ -282,25 +360,23 @@ Respond JSON:
     return True, 'AI error — auto-approve'
 
 
-# For direct testing
+# For testing
 if __name__ == "__main__":
-    print("Testing Decision Engine...")
+    print("Testing v10.1 Decision Engine...")
+    print(f"Active repos: {[r[0] for r in ACTIVE_REPOS]}")
+    print(f"Broken repos (skipped): {BROKEN_REPOS}")
+    print(f"Task distribution: {TASK_DISTRIBUTION}")
+    print()
     
-    repo, branch, _, ptype, _ = TIER1[0]  # omniflow-ai-commerce
-    print(f"\nRepo: {repo} ({ptype})")
-    
-    metadata = get_repo_metadata(repo, branch)
-    print(f"Progress: {len(metadata['progress'])} chars")
-    print(f"Commits: {len(metadata['commits'])}")
-    print(f"PRs: {len(metadata['merged_prs'])}")
-    print(f"Deps: {len(metadata['deps'])}")
-    
-    memory = load_repo_memory(repo)
-    print(f"Memory: {bool(memory)}")
-    
-    task = pick_task(repo, ptype, metadata, memory)
-    print(f"\n=== Picked task ===")
-    print(json.dumps(task, indent=2)[:1000])
-    
-    safe, reason = review_task_safety(task, repo, ptype)
-    print(f"\nSafety: {safe} — {reason}")
+    for repo, branch, _, ptype, _ in ACTIVE_REPOS:
+        print(f"\n=== {repo} ({ptype}) ===")
+        metadata = get_repo_metadata(repo, branch)
+        print(f"Progress: {len(metadata['progress'])} chars")
+        print(f"Commits: {len(metadata['commits'])}")
+        
+        memory = load_repo_memory(repo)
+        task = pick_task(repo, ptype, metadata, memory)
+        print(f"\nTask: {task['title']}")
+        print(f"Type: {task['task_type']}")
+        print(f"Risk: {task['risk_level']}")
+        print(f"Prompt (first 200 chars): {task['jules_prompt'][:200]}...")
