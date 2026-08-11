@@ -114,8 +114,8 @@ def select_repos(sessions_today, rem_quota):
         last_time = get_repo_last_time(sessions_today, repo)
         hours_ago = (now - datetime.fromisoformat(last_time.replace('Z', '+00:00'))).total_seconds() / 3600 if last_time else 9999
         
-        # 2h cooldown between touches
-        if hours_ago < 2:
+        # 30min cooldown between touches (was 2h — too long)
+        if hours_ago < 0.5:
             remaining = 0
         
         repo_states.append({
